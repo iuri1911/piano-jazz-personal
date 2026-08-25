@@ -1,0 +1,108 @@
+import { Chord, Interval, Midi, Note } from 'tonal'
+import {
+  QUALITIES,
+  VOICINGS,
+  type Quality,
+  type Voicing,
+  degreeToSemitones,
+  voicingToMidi,
+} from './voicings'
+
+export const PITCH_CLASSES_FLAT = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B']
+export const PITCH_CLASSES_SHARP = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
+
+export type Spelling = 'flat' | 'sharp'
+
+export function midiToName(midi: number, spelling: Spelling = 'flat'): string {
+  return Midi.midiToNoteName(midi, { sharps: spelling === 'sharp' })
+}
+
+export function pitchClassName(pc: number, spelling: Spelling = 'flat'): string {
+  return (spelling === 'sharp' ? PITCH_CLASSES_SHARP : PITCH_CLASSES_FLAT)[((pc % 12) + 12) % 12]
+}
+
+/** Nomes de acorde possiveis, do mais provavel pro menos. Vazio se nao reconhecer. */
+export function detectChord(midi: number[], spelling: Spelling = 'flat'): string[] {
+  if (midi.length < 2) return []
+  const sorted = [...midi].sort((a, b) => a - b)
+  const names = sorted.map((n) => midiToName(n, spelling))
+  return Chord.detect(names, { assumePerfectFifth: true })
+}
+
+/** Intervalos a partir da nota mais grave, ex.: ['1P', '3m', '5P', '7m']. */
+export function intervalsFromBass(midi: number[]): string[] {
+  if (midi.length === 0) return []
+  const sorted = [...midi].sort((a, b) => a - b)
+  const bass = midiToName(sorted[0])
+  return sorted.map((n) => Interval.distance(bass, midiToName(n)))
+}
+
+export function midiToPitchClasses(midi: number[]): number[] {
+  return [...new Set(midi.map((n) => ((n % 12) + 12) % 12))].sort((a, b) => a - b)
+}
+
+export function sameSet(a: number[], b: number[]): boolean {
+  if (a.length !== b.length) return false
+  const x = [...a].sort((p, q) => p - q)
+  const y = [...b].sort((p, q) => p - q)
+  return x.every((n, i) => n === y[i])
+}
+
+/** Diferenca entre o que foi tocado e o alvo, pra pintar o teclado. */
+export function compareToTarget(played: number[], target: number[]) {
+  const t = new Set(target)
+  const p = new Set(played)
+  return {
+    correct: [...p].filter((n) => t.has(n)).sort((a, b) => a - b),
+    extra: [...p].filter((n) => !t.has(n)).sort((a, b) => a - b),
+    missing: [...t].filter((n) => !p.has(n)).sort((a, b) => a - b),
+    exact: sameSet(played, target),
+  }
+}
+
+export type VoicingMatch = { voicing: Voicing; quality: Quality; rootMidi: number }
+
+/**
+ * Reconhece o conjunto tocado como um dos voicings da tabela, em qualquer
+ * fundamental e qualquer oitava. Exige coincidencia exata de notas.
+ */
+export function detectVoicing(midi: number[]): VoicingMatch | null {
+  if (midi.length < 2) return null
+  const played = [...midi].sort((a, b) => a - b)
+  for (const voicing of VOICINGS) {
+    for (const quality of voicing.qualities) {
+      if (!QUALITIES.includes(quality)) continue
+      // offsets a partir da fundamental (podem ser negativos, ex.: "5,")
+      const offsets = voicingToMidi(voicing, quality, 0)
+      if (offsets.length !== played.length) continue
+      const rootMidi = played[0] - offsets[0]
+      if (sameSet(played, offsets.map((o) => o + rootMidi))) {
+        return { voicing, quality, rootMidi }
+      }
+    }
+  }
+  return null
+}
+
+/** Rotulo do acorde alvo, ex.: "Cm7", "F7", "Bbmaj7". */
+export function chordLabel(rootPc: number, quality: Quality, spelling: Spelling = 'flat'): string {
+  return pitchClassName(rootPc, spelling) + (quality === '7' ? '7' : quality)
+}
+
+/** Nomes das notas de cada mao, pra mostrar embaixo do exercicio. */
+export function handNotes(voicing: Voicing, quality: Quality, rootMidi: number, spelling: Spelling = 'flat') {
+  const toNames = (tokens: string[]) =>
+    tokens
+      .map((d) => rootMidi + degreeToSemitones(d, quality))
+      .sort((a, b) => a - b)
+      .map((n) => midiToName(n, spelling))
+  return { lh: toNames(voicing.lh), rh: toNames(voicing.rh) }
+}
+
+/** Nome enarmonicamente correto pro VexFlow, no formato "eb/4". */
+export function midiToVexKey(midi: number, spelling: Spelling = 'flat'): string {
+  const name = midiToName(midi, spelling)
+  const pc = Note.pitchClass(name)
+  const oct = Note.octave(name) ?? 4
+  return `${pc.toLowerCase()}/${oct}`
+}

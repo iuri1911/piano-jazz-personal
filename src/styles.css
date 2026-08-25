@@ -1,0 +1,679 @@
+:root {
+  --bg: #14161a;
+  --panel: #1d2026;
+  --fg: #e7e9ee;
+  --dim: #8b93a3;
+  --accent: #6ea8fe;
+  --ok: #35c48a;
+  --bad: #e5544b;
+  --miss: #6ea8fe;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font: 15px/1.45 ui-sans-serif, system-ui, -apple-system, sans-serif;
+}
+
+.app {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 16px 20px 48px;
+}
+
+header {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  padding-bottom: 8px;
+}
+
+h1 {
+  font-size: 18px;
+  margin: 0;
+  letter-spacing: 0.02em;
+}
+
+h3 {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--dim);
+  margin: 0 0 4px;
+}
+
+nav {
+  display: flex;
+  gap: 4px;
+}
+
+button {
+  background: var(--panel);
+  color: var(--fg);
+  border: 1px solid #2c313b;
+  border-radius: 6px;
+  padding: 5px 12px;
+  font: inherit;
+  cursor: pointer;
+}
+
+button:hover {
+  border-color: var(--accent);
+}
+
+button.on {
+  background: var(--accent);
+  color: #0d1017;
+  border-color: var(--accent);
+}
+
+select,
+input[type='range'] {
+  font: inherit;
+  background: var(--panel);
+  color: var(--fg);
+  border: 1px solid #2c313b;
+  border-radius: 6px;
+  padding: 3px 6px;
+}
+
+.settings {
+  margin-left: auto;
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  font-size: 13px;
+  color: var(--dim);
+}
+
+.settings label,
+.controls label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.devices,
+.error {
+  font-size: 13px;
+  color: var(--dim);
+  margin: 0 0 16px;
+}
+
+.error {
+  color: var(--bad);
+}
+
+.pedal-on {
+  margin-left: 10px;
+  padding: 1px 7px;
+  border-radius: 4px;
+  background: var(--accent);
+  color: #0d1017;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* ---- leitura do acorde ---- */
+
+.readout,
+.prompt {
+  background: var(--panel);
+  border: 1px solid #2c313b;
+  border-radius: 10px;
+  padding: 14px 18px;
+  margin-bottom: 16px;
+}
+
+.chord-symbol {
+  font-size: 40px;
+  font-weight: 600;
+  line-height: 1.1;
+}
+
+.voicing-name {
+  color: var(--accent);
+  font-size: 16px;
+}
+
+.alt-names,
+.note-list,
+.intervals,
+.voicing-note,
+.hand-notes {
+  color: var(--dim);
+  font-size: 13px;
+  margin: 2px 0 0;
+}
+
+.note-list {
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  color: var(--fg);
+}
+
+/* ---- drill ---- */
+
+.controls {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+fieldset.qualities {
+  border: 1px solid #2c313b;
+  border-radius: 6px;
+  padding: 2px 10px 6px;
+  display: flex;
+  gap: 10px;
+}
+
+fieldset.qualities legend {
+  font-size: 11px;
+  color: var(--dim);
+  padding: 0 4px;
+}
+
+.prompt {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  border-left: 4px solid #2c313b;
+}
+
+.prompt.correct {
+  border-left-color: var(--ok);
+}
+
+.prompt.wrong {
+  border-left-color: var(--bad);
+}
+
+.verdict {
+  margin-left: auto;
+  font-size: 14px;
+  color: var(--dim);
+}
+
+.prompt.correct .verdict {
+  color: var(--ok);
+}
+
+.prompt.wrong .verdict {
+  color: var(--bad);
+}
+
+.side-by-side {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.stats,
+.legend,
+.per-key {
+  font-size: 13px;
+  color: var(--dim);
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.per-key {
+  display: block;
+}
+
+.per-key ul {
+  columns: 4;
+  padding-left: 18px;
+  margin: 6px 0 0;
+}
+
+.swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  display: inline-block;
+  margin-left: 8px;
+}
+
+.swatch.correct {
+  background: var(--ok);
+}
+
+.swatch.extra {
+  background: var(--bad);
+}
+
+.swatch.missing {
+  background: var(--miss);
+}
+
+/* ---- pauta (VexFlow desenha em SVG preto) ---- */
+
+.staff {
+  background: #f4f4f0;
+  border-radius: 8px;
+  display: inline-block;
+  padding: 4px;
+}
+
+/* ---- teclado ---- */
+
+.keyboard {
+  width: 100%;
+  height: auto;
+  margin-top: 8px;
+}
+
+.key.white {
+  fill: #eceef2;
+  stroke: #14161a;
+  stroke-width: 1;
+}
+
+.key.black {
+  fill: #23262d;
+  stroke: #14161a;
+  stroke-width: 1;
+}
+
+.key.held {
+  fill: var(--accent);
+}
+
+.key.correct {
+  fill: var(--ok);
+}
+
+.key.extra {
+  fill: var(--bad);
+}
+
+.key.missing {
+  stroke: var(--miss);
+  stroke-width: 3;
+  stroke-dasharray: 4 3;
+}
+
+.key-label {
+  fill: var(--dim);
+  font-size: 11px;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+}
+
+/* --- shred ---------------------------------------------------------------- */
+
+.shred {
+  display: grid;
+  gap: 14px;
+}
+
+.exercise-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.badge {
+  display: inline-block;
+  padding: 1px 7px;
+  margin-right: 6px;
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--dim);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.exercise-head .focus {
+  color: var(--dim);
+}
+
+.tempo .bpm {
+  font-size: 22px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.tempo .bpm.playing {
+  color: var(--ok);
+}
+
+.tempo .bpm.countin {
+  color: var(--accent);
+}
+
+.tempo .pr {
+  color: var(--ok);
+}
+
+.dim {
+  color: var(--dim);
+}
+
+.mode-help,
+.exercise-note {
+  margin: 0;
+  color: var(--dim);
+  font-size: 13px;
+  max-width: 70ch;
+}
+
+.exercise-note {
+  border-left: 3px solid var(--panel);
+  padding-left: 12px;
+}
+
+.warn {
+  margin: 0;
+  color: #e0a33a;
+  font-size: 13px;
+}
+
+/* O canvas e o teclado tem a mesma largura util, entao a nota cai na tecla. */
+.roll-stack {
+  display: grid;
+  gap: 0;
+}
+
+.piano-roll {
+  display: block;
+  border-radius: 6px 6px 0 0;
+}
+
+.verdict-bar {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  border-radius: 6px;
+  background: var(--panel);
+  border-left: 3px solid var(--miss);
+  min-height: 44px;
+}
+
+.verdict-bar.ok {
+  border-left-color: var(--ok);
+}
+
+.verdict-bar.fail {
+  border-left-color: var(--bad);
+}
+
+.verdict-bar .metric {
+  color: var(--dim);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.verdict-bar .reasons {
+  color: var(--bad);
+  font-size: 13px;
+  flex-basis: 100%;
+}
+
+.rep-log {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+}
+
+.rep-log span {
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: var(--panel);
+  color: var(--dim);
+}
+
+.rep-log span.ok {
+  color: var(--ok);
+}
+
+.rep-log span.fail {
+  color: var(--bad);
+}
+
+.diagnosis {
+  background: var(--panel);
+  border-radius: 6px;
+  padding: 12px 16px;
+}
+
+.diagnosis h3 {
+  margin: 0 0 4px;
+}
+
+.diagnosis p {
+  margin: 0 0 8px;
+  font-size: 13px;
+}
+
+.diagnosis ul {
+  margin: 0;
+  padding-left: 20px;
+  font-variant-numeric: tabular-nums;
+}
+
+.shred-settings summary {
+  cursor: pointer;
+  color: var(--dim);
+}
+
+.shred-settings .controls {
+  margin-top: 10px;
+  align-items: center;
+}
+
+button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #10131a;
+  font-weight: 600;
+}
+
+.badge.override {
+  margin-left: 8px;
+  margin-right: 0;
+  background: transparent;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+}
+
+.verdict-bar .note-diff {
+  flex-basis: 100%;
+  color: var(--dim);
+  font-size: 13px;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+}
+
+.tempo-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tempo-picker button {
+  padding: 2px 10px;
+  font-size: 16px;
+  line-height: 1.1;
+}
+
+.tempo-picker input.bpm {
+  width: 4.5ch;
+  padding: 2px 4px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px dashed var(--dim);
+  border-radius: 0;
+  color: inherit;
+  font-size: 22px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.tempo-picker input.bpm:focus {
+  outline: none;
+  border-bottom-color: var(--accent);
+}
+
+.tempo-slider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.tempo-slider input[type='range'] {
+  flex: 1;
+  max-width: 380px;
+}
+
+.limits {
+  margin: 0;
+  font-size: 13px;
+  color: var(--dim);
+}
+
+.limits strong {
+  color: var(--fg);
+  font-variant-numeric: tabular-nums;
+}
+
+.click-volume {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--dim);
+}
+
+.click-volume input[type='range'] {
+  max-width: 160px;
+}
+
+.ramp-progress {
+  margin: 0;
+  font-size: 13px;
+  color: var(--dim);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ramp-progress strong {
+  color: var(--ok);
+  font-variant-numeric: tabular-nums;
+}
+
+.ramp-progress.down strong {
+  color: var(--bad);
+}
+
+.dots {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 1px solid var(--dim);
+}
+
+.ramp-progress.up .dot.on {
+  background: var(--ok);
+  border-color: var(--ok);
+}
+
+.ramp-progress.down .dot.on {
+  background: var(--bad);
+  border-color: var(--bad);
+}
+
+/* O piano-roll ocupa a coluna toda; o aviso fica por cima dele. */
+.roll-stack {
+  position: relative;
+}
+
+.roll-announce,
+.roll-warn {
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 2;
+  pointer-events: none;
+  text-align: center;
+}
+
+/* Mudou de andamento: grande no meio, impossivel de perder. */
+.roll-announce {
+  top: 28%;
+  font-size: clamp(40px, 9vw, 104px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 4px 28px rgba(0, 0, 0, 0.75);
+  animation: announce-in 220ms ease-out;
+}
+
+.roll-announce.up {
+  color: var(--ok);
+}
+
+.roll-announce.down {
+  color: var(--bad);
+}
+
+@keyframes announce-in {
+  from {
+    opacity: 0;
+    transform: scale(0.88);
+  }
+}
+
+/* Aviso previo: some depois, entao fica no topo sem cobrir as notas. */
+.roll-warn {
+  top: 8px;
+  font-size: clamp(14px, 2.2vw, 22px);
+  font-weight: 700;
+  color: var(--ok);
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.8);
+  animation: warn-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes warn-pulse {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+.audio-row {
+  display: flex;
+  gap: 22px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.click-volume input[type='range']:disabled {
+  opacity: 0.35;
+}
