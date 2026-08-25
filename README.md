@@ -1,6 +1,10 @@
 # Piano Jazz Trainer
 
+**No ar: https://iuri1911.github.io/piano-jazz-personal/**
+
 Treino de piano por MIDI: voicings de jazz e shredding. O som do piano vem do seu teclado — o app só sintetiza o clique do metrônomo, na aba Shred.
+
+Para rodar local:
 
 ```bash
 npm install && npm run dev
