@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 
-// Notas de um acorde NAO chegam juntas — chegam espalhadas em 10-80ms conforme
-// a mao. Este e o tempo de silencio (sem note on/off) depois do qual o acorde
-// e considerado "fechado". Hardware real, precisa de ajuste: tem slider na UI.
+// The notes of a chord do NOT arrive together — they land spread over 10-80ms
+// depending on the hand. This is the quiet time (no note on/off) after which the
+// chord counts as "settled". Real hardware needs tuning: there is a slider in the UI.
 export const DEFAULT_SETTLE_MS = 60
 
-/** Teclas embaixo do dedo + teclas soltas mas ainda seguradas pelo pedal. */
+/** Keys under a finger + keys released but still held by the pedal. */
 export type Keys = {
   down: Set<number>
   sustained: Set<number>
@@ -16,18 +16,18 @@ export function newKeys(): Keys {
   return { down: new Set(), sustained: new Set(), pedal: false }
 }
 
-/** O que esta soando: dedo + pedal. E isto que vira acorde. */
+/** What is sounding: finger + pedal. This is what becomes a chord. */
 export function sounding(keys: Keys): number[] {
   return [...new Set([...keys.down, ...keys.sustained])].sort((a, b) => a - b)
 }
 
 const SUSTAIN_CC = 64
-const PEDAL_THRESHOLD = 64 // half-pedal conta como pisado
+const PEDAL_THRESHOLD = 64 // half-pedal counts as pressed
 
 /**
- * Aplica uma mensagem MIDI ao estado das teclas.
- * Devolve true se o que esta soando mudou. Puro de proposito — e a parte que da
- * bug silencioso, entao fica testavel sem browser.
+ * Applies a MIDI message to the key state.
+ * Returns true when what is sounding changed. Pure on purpose — this is the part
+ * that fails silently, so it stays testable without a browser.
  */
 export function applyMidiMessage(keys: Keys, data: ArrayLike<number>): boolean {
   const [status, data1, data2] = [data[0], data[1], data[2]]
@@ -36,15 +36,15 @@ export function applyMidiMessage(keys: Keys, data: ArrayLike<number>): boolean {
   if (command === 0x90 && data2 > 0) {
     const wasSounding = keys.down.has(data1) || keys.sustained.has(data1)
     keys.down.add(data1)
-    keys.sustained.delete(data1) // retocada: volta a ser nota de dedo
+    keys.sustained.delete(data1) // struck again: back to being a finger note
     return !wasSounding
   }
 
   if (command === 0x80 || (command === 0x90 && data2 === 0)) {
-    // Muito teclado manda note-on com velocity 0 no lugar de note-off.
+    // Plenty of keyboards send note-on with velocity 0 instead of note-off.
     if (!keys.down.delete(data1)) return false
     if (keys.pedal) {
-      // Pedal pisado: a nota continua soando, entao continua no acorde.
+      // Pedal down: the note keeps sounding, so it stays in the chord.
       keys.sustained.add(data1)
       return false
     }
@@ -55,9 +55,9 @@ export function applyMidiMessage(keys: Keys, data: ArrayLike<number>): boolean {
     const pedal = data2 >= PEDAL_THRESHOLD
     if (pedal === keys.pedal) return false
     keys.pedal = pedal
-    if (pedal) return false // pisar nao muda o que soa, so o que vai continuar soando
+    if (pedal) return false // pressing changes nothing sounding, only what will keep sounding
     if (keys.sustained.size === 0) return false
-    keys.sustained.clear() // soltar o pedal corta o que nao esta embaixo do dedo
+    keys.sustained.clear() // releasing the pedal cuts whatever is not under a finger
     return true
   }
 
@@ -72,22 +72,22 @@ export function applyMidiMessage(keys: Keys, data: ArrayLike<number>): boolean {
 }
 
 // ---------------------------------------------------------------------------
-// Fluxo de eventos crus
+// Raw event stream
 //
-// O caminho de acorde (useMidi) joga fora velocity e timestamp de proposito: um
-// acorde nao tem ritmo. O shred precisa dos dois. Em vez de dois hooks abrindo
-// duas MIDIAccess, tem uma so aqui no modulo distribuindo pra N assinantes.
+// The chord path (useMidi) throws away velocity and timestamp on purpose: a chord
+// has no rhythm. Shred needs both. Instead of two hooks opening two MIDIAccess,
+// there is a single one here in the module fanning out to N subscribers.
 // ---------------------------------------------------------------------------
 
 export type MidiEvent = {
   kind: 'on' | 'off'
   note: number
   velocity: number
-  /** Epoch de performance.now(), pra bater com o resto das medicoes. */
+  /** performance.now() epoch, to line up with every other measurement. */
   time: number
 }
 
-/** Extrai a nota de uma mensagem. null pra CC, clock, aftertouch. Puro. */
+/** Extracts the note from a message. null for CC, clock, aftertouch. Pure. */
 export function parseNoteEvent(data: ArrayLike<number>, time: number): MidiEvent | null {
   const command = data[0] & 0xf0
   if (command === 0x90 && data[2] > 0) {
@@ -118,8 +118,8 @@ function publishStatus(next: MidiStatus) {
 
 function onMessage(e: MIDIMessageEvent) {
   if (!e.data) return
-  // timeStamp vem do driver e e mais preciso que ler o relogio aqui dentro,
-  // que ja pagou o custo da fila de eventos. Alguns ambientes mandam 0.
+  // timeStamp comes from the driver and is more accurate than reading the clock
+  // in here, which already paid for the event queue. Some environments send 0.
   const time = e.timeStamp || performance.now()
   for (const cb of rawListeners) cb(e.data, time)
 }
@@ -128,13 +128,13 @@ function bindInputs() {
   if (!access) return
   const names: string[] = []
   access.inputs.forEach((input) => {
-    // addEventListener, nao onmidimessage: atribuir a propriedade faria o
-    // segundo consumidor apagar o primeiro sem erro nenhum.
+    // addEventListener, not onmidimessage: assigning the property would let the
+    // second consumer wipe out the first with no error at all.
     if (!boundInputs.has(input)) {
       input.addEventListener('midimessage', onMessage as EventListener)
       boundInputs.add(input)
     }
-    names.push(input.name ?? 'sem nome')
+    names.push(input.name ?? 'unnamed')
   })
   publishStatus({ devices: names, error: null })
 }
@@ -142,7 +142,7 @@ function bindInputs() {
 function start() {
   if (access || starting) return
   if (!navigator.requestMIDIAccess) {
-    publishStatus({ devices: [], error: 'Este navegador nao tem Web MIDI API. Use Chrome ou Edge.' })
+    publishStatus({ devices: [], error: 'This browser has no Web MIDI API. Use Chrome or Edge.' })
     return
   }
   starting = true
@@ -150,16 +150,16 @@ function start() {
     .requestMIDIAccess({ sysex: false })
     .then((a) => {
       access = a
-      a.onstatechange = bindInputs // teclado plugado/desplugado no meio da sessao
+      a.onstatechange = bindInputs // keyboard plugged/unplugged mid-session
       bindInputs()
     })
-    .catch((e: Error) => publishStatus({ devices: [], error: `Acesso MIDI negado: ${e.message}` }))
+    .catch((e: Error) => publishStatus({ devices: [], error: `MIDI access denied: ${e.message}` }))
     .finally(() => {
       starting = false
     })
 }
 
-/** Assina as mensagens cruas. Devolve a funcao de cancelar. */
+/** Subscribes to the raw messages. Returns the unsubscribe function. */
 export function subscribeRaw(cb: RawListener): () => void {
   rawListeners.add(cb)
   start()
@@ -168,7 +168,7 @@ export function subscribeRaw(cb: RawListener): () => void {
   }
 }
 
-/** Assina so os note on/off, ja parseados. */
+/** Subscribes to note on/off only, already parsed. */
 export function subscribeMidi(cb: (e: MidiEvent) => void): () => void {
   return subscribeRaw((data, time) => {
     const ev = parseNoteEvent(data, time)
@@ -176,7 +176,7 @@ export function subscribeMidi(cb: (e: MidiEvent) => void): () => void {
   })
 }
 
-/** Assina dispositivos/erro. Dispara na hora com o estado atual. */
+/** Subscribes to devices/error. Fires immediately with the current state. */
 export function subscribeStatus(cb: (s: MidiStatus) => void): () => void {
   statusListeners.add(cb)
   cb(status)
@@ -186,7 +186,7 @@ export function subscribeStatus(cb: (s: MidiStatus) => void): () => void {
   }
 }
 
-/** Notas cruas com velocity e tempo. O callback pode trocar entre renders. */
+/** Raw notes with velocity and time. The callback may change between renders. */
 export function useMidiEvents(cb: (e: MidiEvent) => void): void {
   const ref = useRef(cb)
   ref.current = cb
@@ -194,9 +194,9 @@ export function useMidiEvents(cb: (e: MidiEvent) => void): void {
 }
 
 export type MidiState = {
-  /** Notas soando agora: dedo + pedal. */
+  /** Notes sounding right now: finger + pedal. */
   held: number[]
-  /** Ultimo acorde estavel. Nao limpa quando voce solta as teclas. */
+  /** Last settled chord. Does not clear when you let go of the keys. */
   settled: number[]
   pedal: boolean
   devices: string[]

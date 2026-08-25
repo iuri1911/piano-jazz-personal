@@ -3,11 +3,11 @@ const KEY = 'pjt:shred'
 export type Pr = { bpm: number; date: string }
 
 export type ShredStats = {
-  /** exerciseId -> pitchClass -> melhor BPM limpo. */
+  /** exerciseId -> pitchClass -> best clean BPM. */
   prs: Record<string, Record<string, Pr>>
   /**
-   * exerciseId -> desvio acumulado por indice de grupo. Soma e contagem em vez
-   * da media pronta pra media nova nao apagar o historico.
+   * exerciseId -> deviation accumulated per group index. Sum and count instead
+   * of a ready-made average, so a new average does not erase the history.
    */
   perGroup: Record<string, { sum: number[]; count: number[] }>
   sessions: { date: string; exerciseId: string; reps: number; passed: number; bestBpm: number }[]
@@ -20,7 +20,7 @@ export function loadShredStats(): ShredStats {
     const raw = JSON.parse(localStorage.getItem(KEY) ?? '{}') as Partial<ShredStats>
     return { ...EMPTY, ...raw, prs: raw.prs ?? {}, perGroup: raw.perGroup ?? {}, sessions: raw.sessions ?? [] }
   } catch {
-    return { ...EMPTY } // storage corrompido nao pode derrubar o app
+    return { ...EMPTY } // corrupt storage must not take the app down
   }
 }
 
@@ -46,8 +46,8 @@ export function recordRep(
     }
   }
 
-  // O diagnostico so faz sentido com o desvio em modulo: interessa QUAL nota
-  // destoa, nao se ela atrasou ou adiantou nesta volta especifica.
+  // The diagnosis only makes sense with the absolute deviation: what matters is
+  // WHICH note is off, not whether it dragged or rushed on this particular rep.
   const acc = (stats.perGroup[exerciseId] ??= { sum: [], count: [] })
   perGroupDevMs.forEach((dev, i) => {
     if (dev === null) return
@@ -73,7 +73,7 @@ export function recordSession(
       passed,
       bestBpm,
     })
-    // Historico e pra olhar tendencia, nao pra virar arquivo morto.
+    // History is for spotting a trend, not for becoming a dead archive.
     if (stats.sessions.length > 200) stats.sessions = stats.sessions.slice(-200)
   }
   return save(stats)
@@ -89,18 +89,18 @@ export function bestPrFor(stats: ShredStats, exerciseId: string): number {
   return all.length ? Math.max(...all) : 0
 }
 
-/** Desvio medio absoluto por indice de nota. E o "qual nota voce embola". */
+/** Mean absolute deviation per note index. This is the "which note you fumble". */
 export function diagnosisFor(stats: ShredStats, exerciseId: string): (number | null)[] {
   const acc = stats.perGroup[exerciseId]
   if (!acc) return []
   return acc.sum.map((s, i) => {
     const c = acc.count[i] ?? 0
-    // Menos de 3 passadas nao e dado, e ruido.
+    // Fewer than 3 passes is not data, it is noise.
     return c >= 3 ? s / c : null
   })
 }
 
-/** Os piores indices, pra UI dizer o que olhar sem despejar o vetor todo. */
+/** The worst indices, so the UI can say what to look at without dumping the whole vector. */
 export function worstGroups(
   diagnosis: (number | null)[],
   count = 3,
@@ -116,7 +116,7 @@ export function clearShredStats() {
   localStorage.removeItem(KEY)
 }
 
-// --- configuracao do teclado ------------------------------------------------
+// --- keyboard configuration -------------------------------------------------
 
 const SETTINGS_KEY = 'pjt:shred:settings'
 
@@ -124,39 +124,44 @@ export type ShredSettings = {
   low: number
   high: number
   /**
-   * Atraso da sua cadeia de entrada, em ms, descontado do instante de cada nota.
-   * Nao muda regularidade (deslocamento constante nao afeta intervalo) — muda
-   * onde a nota aparece contra a grade e no piano-roll.
+   * Latency of your input chain, in ms, subtracted from the instant of each note.
+   * It does not change evenness (a constant offset does not affect the interval) —
+   * it changes where the note appears against the grid and in the piano roll.
    */
   latencyMs: number
-  /** Quao permissivo o veredito e. Preferencia de estudo, entao fica salva. */
+  /** How permissive the verdict is. A practice preference, so it is saved. */
   strictness: string
-  /** Volume do clique, 0 a 1. So do metronomo — o piano do "Ouvir" nao passa por aqui. */
+  /** Click volume, 0 to 1. Metronome only — the "Listen" piano does not go through here. */
   clickVolume: number
-  /** Quantas voltas limpas seguidas sobem o andamento. 1 sobe assim que acerta. */
+  /** How many clean reps in a row raise the tempo. 1 raises it as soon as you nail one. */
   advanceReps: number
-  // O que estava selecionado. Guardado cru: quem valida contra as tabelas e o
-  // componente, entao renomear um exercicio aqui nao quebra o storage de ninguem.
+  // What was selected. Stored raw: the component is what validates against the
+  // tables, so renaming an exercise here does not break anyone's storage.
   exerciseId: string
   rootPc: number
   handMode: string
   order: string
   mode: string
   qwerty: boolean
-  /** Numero do dedo nas notas do piano-roll. */
+  /** Finger number on the piano roll notes. */
   showFingers: boolean
-  /** Piano tocando o exercicio junto com voce, o tempo todo. */
+  /** Piano playing the exercise along with you, the whole time. */
   guide: boolean
-  /** Volume da referencia, 0 a 1. Separado do clique. */
+  /** Guide volume, 0 to 1. Separate from the click. */
   guideVolume: number
 }
 
-/** A-49: 49 teclas, C2..C6. E o padrao ate a pessoa detectar o proprio. */
+// Settings saved by an older build can carry a strictness value that no longer
+// exists (the labels used to be in Portuguese). Anything unknown falls back to
+// the default instead of reaching toleranceFor() and matching no case.
+const STRICTNESS_VALUES = new Set(['learning', 'loose', 'standard', 'strict'])
+
+/** A-49: 49 keys, C2..C6. The default until the player detects their own. */
 export const DEFAULT_SETTINGS: ShredSettings = {
   low: 36,
   high: 84,
   latencyMs: 0,
-  strictness: 'padrao',
+  strictness: 'standard',
   clickVolume: 0.8,
   advanceReps: 2,
   exerciseId: '',
@@ -171,20 +176,22 @@ export const DEFAULT_SETTINGS: ShredSettings = {
 }
 
 /**
- * Preenche o que faltar. Roda tanto na leitura quanto na gravacao: assim um
- * objeto salvo por uma versao antiga do app — sem um campo que passou a
- * existir depois — nunca chega na UI como undefined e vira NaN num input.
+ * Fills in whatever is missing. Runs on both read and write: that way an object
+ * saved by an older version of the app — without a field that only came to exist
+ * later — never reaches the UI as undefined and turns into NaN in an input.
  */
 function normalize(raw: Partial<ShredSettings>): ShredSettings {
   const low = Number.isFinite(raw.low) ? (raw.low as number) : DEFAULT_SETTINGS.low
   const high = Number.isFinite(raw.high) ? (raw.high as number) : DEFAULT_SETTINGS.high
-  // Faixa invertida ou pequena demais nao renderiza teclado nenhum.
+  // An inverted or too-small range renders no keyboard at all.
   if (high - low < 24) return { ...DEFAULT_SETTINGS }
   return {
     low,
     high,
     latencyMs: Number.isFinite(raw.latencyMs) ? (raw.latencyMs as number) : DEFAULT_SETTINGS.latencyMs,
-    strictness: typeof raw.strictness === 'string' ? raw.strictness : DEFAULT_SETTINGS.strictness,
+    strictness: STRICTNESS_VALUES.has(raw.strictness as string)
+      ? (raw.strictness as string)
+      : DEFAULT_SETTINGS.strictness,
     clickVolume: Number.isFinite(raw.clickVolume)
       ? Math.max(0, Math.min(1, raw.clickVolume as number))
       : DEFAULT_SETTINGS.clickVolume,
@@ -199,7 +206,7 @@ function normalize(raw: Partial<ShredSettings>): ShredSettings {
     order: typeof raw.order === 'string' ? raw.order : DEFAULT_SETTINGS.order,
     mode: typeof raw.mode === 'string' ? raw.mode : DEFAULT_SETTINGS.mode,
     qwerty: raw.qwerty === true,
-    showFingers: raw.showFingers !== false, // ligado por padrao
+    showFingers: raw.showFingers !== false, // on by default
     guide: raw.guide === true,
     guideVolume: Number.isFinite(raw.guideVolume)
       ? Math.max(0, Math.min(1, raw.guideVolume as number))
@@ -216,7 +223,7 @@ export function loadSettings(): ShredSettings {
 }
 
 export function saveSettings(s: Partial<ShredSettings>): ShredSettings {
-  const completo = normalize(s)
-  localStorage.setItem(SETTINGS_KEY, JSON.stringify(completo))
-  return completo
+  const complete = normalize(s)
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify(complete))
+  return complete
 }

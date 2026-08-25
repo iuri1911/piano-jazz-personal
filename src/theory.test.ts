@@ -7,40 +7,40 @@ const C3 = 48
 
 const v = (id: string) => VOICING_BY_ID.get(id)!
 
-describe('graus', () => {
-  it('resolve alteracao pela qualidade do acorde', () => {
+describe('degrees', () => {
+  it('resolves the alteration from the chord quality', () => {
     expect(degreeToSemitones('3', 'm7')).toBe(3)
     expect(degreeToSemitones('3', 'maj7')).toBe(4)
     expect(degreeToSemitones('7', '7')).toBe(10)
     expect(degreeToSemitones('7', 'maj7')).toBe(11)
   })
 
-  it('desloca oitava com aspas e virgula', () => {
+  it('shifts octave with quotes and commas', () => {
     expect(degreeToSemitones("3'", 'm7')).toBe(15)
     expect(degreeToSemitones('5,', 'm7')).toBe(-5)
     expect(degreeToSemitones("1''", 'm7')).toBe(24)
   })
 
-  it('rejeita token invalido', () => {
+  it('rejects an invalid token', () => {
     expect(() => degreeToSemitones('b3', 'm7')).toThrow()
     expect(() => degreeToSemitones('4', 'm7')).toThrow()
   })
 })
 
 describe('voicingToMidi', () => {
-  it('Rootless A em Cm7 = C3 Eb4 G4 Bb4 D5', () => {
+  it('Rootless A on Cm7 = C3 Eb4 G4 Bb4 D5', () => {
     expect(voicingToMidi(v('rootless-a'), 'm7', C3)).toEqual([48, 63, 67, 70, 74])
   })
 
-  it('Kenny Barron em Cm7 = C3 G3 D4 / Eb4 Bb4 F5', () => {
+  it('Kenny Barron on Cm7 = C3 G3 D4 / Eb4 Bb4 F5', () => {
     expect(voicingToMidi(v('kenny-barron'), 'm7', C3)).toEqual([48, 55, 62, 63, 70, 77])
   })
 
-  it('So What em Cm7 comeca abaixo da fundamental', () => {
+  it('So What on Cm7 starts below the root', () => {
     expect(voicingToMidi(v('so-what'), 'm7', C3)).toEqual([43, 48, 53, 58, 62])
   })
 
-  it('transpor preserva o desenho de intervalos nos 12 tons', () => {
+  it('transposing preserves the interval shape in all 12 keys', () => {
     for (const voicing of VOICINGS) {
       for (const quality of voicing.qualities) {
         const shape = voicingShape(voicing, quality)
@@ -53,14 +53,14 @@ describe('voicingToMidi', () => {
   })
 })
 
-describe('validacao exata', () => {
+describe('exact validation', () => {
   const target = voicingToMidi(v('rootless-a'), 'm7', C3)
 
-  it('conjunto igual passa', () => {
+  it('an identical set passes', () => {
     expect(compareToTarget([...target].reverse(), target).exact).toBe(true)
   })
 
-  it('mesma nota uma oitava acima falha', () => {
+  it('the same note one octave up fails', () => {
     const wrong = [...target.slice(0, -1), target[target.length - 1] + 12]
     const c = compareToTarget(wrong, target)
     expect(c.exact).toBe(false)
@@ -68,24 +68,24 @@ describe('validacao exata', () => {
     expect(c.missing).toEqual([target[target.length - 1]])
   })
 
-  it('nota faltando falha', () => {
+  it('a missing note fails', () => {
     const c = compareToTarget(target.slice(1), target)
     expect(c.exact).toBe(false)
     expect(c.missing).toEqual([target[0]])
   })
 
-  it('nota sobrando falha', () => {
+  it('an extra note fails', () => {
     expect(compareToTarget([...target, 90], target).exact).toBe(false)
   })
 
-  it('sameSet ignora ordem e repeticao de tamanho', () => {
+  it('sameSet ignores order and length repetition', () => {
     expect(sameSet([1, 2, 3], [3, 2, 1])).toBe(true)
     expect(sameSet([1, 2], [1, 2, 3])).toBe(false)
   })
 })
 
 describe('detectVoicing', () => {
-  it('reconhece So What em qualquer fundamental', () => {
+  it('recognizes So What on any root', () => {
     for (let pc = 0; pc < 12; pc++) {
       const notes = voicingToMidi(v('so-what'), 'm7', C3 + pc)
       const match = detectVoicing(notes)
@@ -94,31 +94,31 @@ describe('detectVoicing', () => {
     }
   })
 
-  it('devolve null pra cluster aleatorio', () => {
+  it('returns null for a random cluster', () => {
     expect(detectVoicing([60, 61, 62, 63, 64, 65])).toBeNull()
     expect(detectVoicing([60])).toBeNull()
   })
 
-  it('todo voicing da tabela se reconhece de volta', () => {
+  it('every voicing in the table recognizes itself back', () => {
     for (const voicing of VOICINGS) {
       for (const quality of voicing.qualities) {
         const notes = voicingToMidi(voicing, quality, C3)
         const match = detectVoicing(notes)
         expect(match, `${voicing.id} ${quality}`).not.toBeNull()
-        // Pode casar com outro voicing que tenha o mesmo conjunto de notas;
-        // o que importa e que as notas batem exatamente.
+        // It may match another voicing with the same set of notes; what matters
+        // is that the notes line up exactly.
         expect(voicingToMidi(match!.voicing, match!.quality, match!.rootMidi)).toEqual(notes)
       }
     }
   })
 })
 
-describe('mensagens MIDI', () => {
+describe('MIDI messages', () => {
   const on = (n: number) => [0x90, n, 100]
   const off = (n: number) => [0x80, n, 0]
   const pedal = (v: number) => [0xb0, 64, v]
 
-  it('note on adiciona, note off remove', () => {
+  it('note on adds, note off removes', () => {
     const keys = newKeys()
     expect(applyMidiMessage(keys, on(60))).toBe(true)
     expect(sounding(keys)).toEqual([60])
@@ -126,14 +126,14 @@ describe('mensagens MIDI', () => {
     expect(sounding(keys)).toEqual([])
   })
 
-  it('note on com velocity 0 conta como note off', () => {
+  it('note on with velocity 0 counts as note off', () => {
     const keys = newKeys()
     applyMidiMessage(keys, on(60))
     expect(applyMidiMessage(keys, [0x90, 60, 0])).toBe(true)
     expect(sounding(keys)).toEqual([])
   })
 
-  it('all notes off limpa tudo, inclusive o que o pedal segura', () => {
+  it('all notes off clears everything, including what the pedal holds', () => {
     const keys = newKeys()
     for (const n of [60, 64, 67]) applyMidiMessage(keys, on(n))
     applyMidiMessage(keys, pedal(127))
@@ -142,13 +142,13 @@ describe('mensagens MIDI', () => {
     expect(sounding(keys)).toEqual([])
   })
 
-  it('respeita o canal MIDI (status 0x95 tambem e note on)', () => {
+  it('respects the MIDI channel (status 0x95 is also note on)', () => {
     const keys = newKeys()
     applyMidiMessage(keys, [0x95, 48, 80])
     expect(sounding(keys)).toEqual([48])
   })
 
-  it('nao sinaliza mudanca quando nada muda', () => {
+  it('signals no change when nothing changes', () => {
     const keys = newKeys()
     applyMidiMessage(keys, on(60))
     expect(applyMidiMessage(keys, on(60))).toBe(false)
@@ -156,21 +156,21 @@ describe('mensagens MIDI', () => {
   })
 })
 
-describe('pedal de sustain', () => {
+describe('sustain pedal', () => {
   const on = (n: number) => [0x90, n, 100]
   const off = (n: number) => [0x80, n, 0]
   const pedal = (v: number) => [0xb0, 64, v]
 
-  it('nota solta com o pedal pisado continua no acorde', () => {
+  it('a note released with the pedal down stays in the chord', () => {
     const keys = newKeys()
     applyMidiMessage(keys, pedal(127))
-    applyMidiMessage(keys, on(48)) // fundamental na mao esquerda
-    expect(applyMidiMessage(keys, off(48))).toBe(false) // solta, mas continua soando
-    for (const n of [63, 67, 70, 74]) applyMidiMessage(keys, on(n)) // rootless A na direita
+    applyMidiMessage(keys, on(48)) // root in the left hand
+    expect(applyMidiMessage(keys, off(48))).toBe(false) // released, but still sounding
+    for (const n of [63, 67, 70, 74]) applyMidiMessage(keys, on(n)) // rootless A in the right hand
     expect(sounding(keys)).toEqual([48, 63, 67, 70, 74])
   })
 
-  it('pisar o pedal depois de soltar a tecla nao ressuscita a nota', () => {
+  it('pressing the pedal after releasing the key does not resurrect the note', () => {
     const keys = newKeys()
     applyMidiMessage(keys, on(48))
     applyMidiMessage(keys, off(48))
@@ -178,7 +178,7 @@ describe('pedal de sustain', () => {
     expect(sounding(keys)).toEqual([])
   })
 
-  it('soltar o pedal corta o que nao esta embaixo do dedo', () => {
+  it('releasing the pedal cuts whatever is not under a finger', () => {
     const keys = newKeys()
     applyMidiMessage(keys, pedal(127))
     applyMidiMessage(keys, on(48))
@@ -188,7 +188,7 @@ describe('pedal de sustain', () => {
     expect(sounding(keys)).toEqual([63])
   })
 
-  it('half-pedal a partir de 64 conta como pisado', () => {
+  it('half-pedal from 64 up counts as pressed', () => {
     const keys = newKeys()
     applyMidiMessage(keys, pedal(63))
     applyMidiMessage(keys, on(48))
@@ -201,33 +201,33 @@ describe('pedal de sustain', () => {
     expect(sounding(keys)).toEqual([48])
   })
 
-  it('retocar uma nota segurada pelo pedal nao duplica', () => {
+  it('re-striking a note held by the pedal does not duplicate it', () => {
     const keys = newKeys()
     applyMidiMessage(keys, pedal(127))
     applyMidiMessage(keys, on(48))
     applyMidiMessage(keys, off(48))
-    expect(applyMidiMessage(keys, on(48))).toBe(false) // ja estava soando
+    expect(applyMidiMessage(keys, on(48))).toBe(false) // it was already sounding
     expect(sounding(keys)).toEqual([48])
-    applyMidiMessage(keys, pedal(0)) // agora esta embaixo do dedo, nao pode sumir
+    applyMidiMessage(keys, pedal(0)) // now it is under a finger, it must not vanish
     expect(sounding(keys)).toEqual([48])
   })
 
-  it('mensagem repetida de pedal nao sinaliza mudanca', () => {
+  it('a repeated pedal message signals no change', () => {
     const keys = newKeys()
     expect(applyMidiMessage(keys, pedal(127))).toBe(false)
     expect(applyMidiMessage(keys, pedal(127))).toBe(false)
-    expect(applyMidiMessage(keys, pedal(0))).toBe(false) // nada preso, nada a cortar
+    expect(applyMidiMessage(keys, pedal(0))).toBe(false) // nothing held, nothing to cut
   })
 })
 
-describe('nomes', () => {
-  it('grafia bemol por padrao', () => {
+describe('names', () => {
+  it('flat spelling by default', () => {
     expect(midiToName(61)).toBe('Db4')
     expect(midiToName(61, 'sharp')).toBe('C#4')
     expect(midiToName(60)).toBe('C4')
   })
 
-  it('chave do VexFlow', () => {
+  it('VexFlow key', () => {
     expect(midiToVexKey(63)).toBe('eb/4')
     expect(midiToVexKey(60)).toBe('c/4')
     expect(midiToVexKey(61, 'sharp')).toBe('c#/4')

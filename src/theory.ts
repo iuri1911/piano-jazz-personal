@@ -21,7 +21,7 @@ export function pitchClassName(pc: number, spelling: Spelling = 'flat'): string 
   return (spelling === 'sharp' ? PITCH_CLASSES_SHARP : PITCH_CLASSES_FLAT)[((pc % 12) + 12) % 12]
 }
 
-/** Nomes de acorde possiveis, do mais provavel pro menos. Vazio se nao reconhecer. */
+/** Possible chord names, likeliest first. Empty when nothing is recognized. */
 export function detectChord(midi: number[], spelling: Spelling = 'flat'): string[] {
   if (midi.length < 2) return []
   const sorted = [...midi].sort((a, b) => a - b)
@@ -29,7 +29,7 @@ export function detectChord(midi: number[], spelling: Spelling = 'flat'): string
   return Chord.detect(names, { assumePerfectFifth: true })
 }
 
-/** Intervalos a partir da nota mais grave, ex.: ['1P', '3m', '5P', '7m']. */
+/** Intervals from the lowest note, e.g. ['1P', '3m', '5P', '7m']. */
 export function intervalsFromBass(midi: number[]): string[] {
   if (midi.length === 0) return []
   const sorted = [...midi].sort((a, b) => a - b)
@@ -48,7 +48,7 @@ export function sameSet(a: number[], b: number[]): boolean {
   return x.every((n, i) => n === y[i])
 }
 
-/** Diferenca entre o que foi tocado e o alvo, pra pintar o teclado. */
+/** Difference between what was played and the target, for colouring the keyboard. */
 export function compareToTarget(played: number[], target: number[]) {
   const t = new Set(target)
   const p = new Set(played)
@@ -63,8 +63,8 @@ export function compareToTarget(played: number[], target: number[]) {
 export type VoicingMatch = { voicing: Voicing; quality: Quality; rootMidi: number }
 
 /**
- * Reconhece o conjunto tocado como um dos voicings da tabela, em qualquer
- * fundamental e qualquer oitava. Exige coincidencia exata de notas.
+ * Recognizes the set played as one of the voicings in the table, in any
+ * root and any octave. Requires an exact note match.
  */
 export function detectVoicing(midi: number[]): VoicingMatch | null {
   if (midi.length < 2) return null
@@ -72,7 +72,7 @@ export function detectVoicing(midi: number[]): VoicingMatch | null {
   for (const voicing of VOICINGS) {
     for (const quality of voicing.qualities) {
       if (!QUALITIES.includes(quality)) continue
-      // offsets a partir da fundamental (podem ser negativos, ex.: "5,")
+      // offsets from the root (can be negative, e.g. "5,")
       const offsets = voicingToMidi(voicing, quality, 0)
       if (offsets.length !== played.length) continue
       const rootMidi = played[0] - offsets[0]
@@ -84,12 +84,12 @@ export function detectVoicing(midi: number[]): VoicingMatch | null {
   return null
 }
 
-/** Rotulo do acorde alvo, ex.: "Cm7", "F7", "Bbmaj7". */
+/** Label of the target chord, e.g. "Cm7", "F7", "Bbmaj7". */
 export function chordLabel(rootPc: number, quality: Quality, spelling: Spelling = 'flat'): string {
   return pitchClassName(rootPc, spelling) + (quality === '7' ? '7' : quality)
 }
 
-/** Nomes das notas de cada mao, pra mostrar embaixo do exercicio. */
+/** Note names for each hand, to show under the exercise. */
 export function handNotes(voicing: Voicing, quality: Quality, rootMidi: number, spelling: Spelling = 'flat') {
   const toNames = (tokens: string[]) =>
     tokens
@@ -99,7 +99,7 @@ export function handNotes(voicing: Voicing, quality: Quality, rootMidi: number, 
   return { lh: toNames(voicing.lh), rh: toNames(voicing.rh) }
 }
 
-/** Nome enarmonicamente correto pro VexFlow, no formato "eb/4". */
+/** Enharmonically correct name for VexFlow, in the "eb/4" format. */
 export function midiToVexKey(midi: number, spelling: Spelling = 'flat'): string {
   const name = midiToName(midi, spelling)
   const pc = Note.pitchClass(name)

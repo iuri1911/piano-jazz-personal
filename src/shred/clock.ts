@@ -1,10 +1,10 @@
-// Metronomo e transporte.
+// Metronome and transport.
 //
-// setTimeout/setInterval tem jitter de dezenas de ms — inaceitavel pra um clique
-// que a pessoa vai usar como referencia de tempo. O padrao aqui e o classico "A
-// Tale of Two Clocks": um timer grosso (25ms) so olha pra frente e AGENDA os
-// cliques no relogio de audio, que e preciso. Nada toca no momento em que o
-// timer dispara.
+// setTimeout/setInterval have tens of ms of jitter — unacceptable for a click
+// someone is going to use as a time reference. The pattern here is the classic
+// "A Tale of Two Clocks": a coarse timer (25ms) only looks ahead and SCHEDULES
+// the clicks on the audio clock, which is precise. Nothing sounds at the moment
+// the timer fires.
 
 const LOOKAHEAD_MS = 25
 const SCHEDULE_AHEAD_S = 0.1
@@ -12,17 +12,17 @@ const SCHEDULE_AHEAD_S = 0.1
 export type StartOpts = {
   bpm: number
   beatsPerBar: number
-  /** Compassos de contagem antes do tempo 0. */
+  /** Count-in bars before beat 0. */
   countInBars: number
-  /** Cliques por tempo alem da cabeca (1 = so o tempo). */
+  /** Clicks per beat beyond the downbeat (1 = the beat only). */
   clicksPerBeat?: number
 }
 
 export type Beat = {
-  /** 0 = primeiro tempo do exercicio. Negativo = contagem. */
+  /** 0 = first beat of the exercise. Negative = count-in. */
   index: number
   audioTime: number
-  /** O mesmo instante no epoch de performance.now(). E o que a avaliacao usa. */
+  /** The same instant in the performance.now() epoch. This is what grading uses. */
   perfTime: number
   bar: number
   beatInBar: number
@@ -32,7 +32,7 @@ type Mark = { index: number; audio: number }
 
 export class Transport {
   private ctx: AudioContext | null = null
-  /** Ganho so do clique: da pra abaixar o metronomo sem mexer no piano. */
+  /** Click-only gain: the metronome can come down without touching the piano. */
   private clickGain: GainNode | null = null
   private volume = 0.8
   private timer: ReturnType<typeof setInterval> | null = null
@@ -41,12 +41,12 @@ export class Transport {
   private bpm = 120
   private beatsPerBar = 4
   private clicksPerBeat = 1
-  /** Ponte entre o relogio de audio e o de performance, em ms. */
+  /** Bridge between the audio clock and the performance clock, in ms. */
   private offsetMs = 0
-  /** Ultimos tempos agendados, pra interpolar a posicao atual. */
+  /** Last scheduled beats, for interpolating the current position. */
   private marks: Mark[] = []
 
-  /** Dispara quando um tempo e AGENDADO — ou seja, com perfTime no futuro. */
+  /** Fires when a beat is SCHEDULED — that is, with perfTime in the future. */
   onBeat: ((b: Beat) => void) | null = null
 
   get running(): boolean {
@@ -57,7 +57,7 @@ export class Transport {
     return this.bpm
   }
 
-  /** Precisa ser chamado dentro de um gesto do usuario: o browser exige. */
+  /** Must be called inside a user gesture: the browser demands it. */
   async start(opts: StartOpts): Promise<void> {
     this.stop()
     const ctx = this.ensureCtx()
@@ -69,7 +69,7 @@ export class Transport {
     this.syncOffset()
 
     this.nextIndex = -opts.countInBars * opts.beatsPerBar
-    this.nextAudio = ctx.currentTime + 0.15 // folga pro primeiro agendamento
+    this.nextAudio = ctx.currentTime + 0.15 // headroom for the first scheduling pass
     this.marks = []
 
     this.tick()
@@ -82,14 +82,14 @@ export class Transport {
     this.marks = []
   }
 
-  /** Troca de tempo vale do proximo tempo em diante — o modo accel usa isso. */
+  /** A tempo change takes effect from the next beat on — accel mode uses this. */
   setBpm(bpm: number): void {
     this.bpm = bpm
   }
 
   /**
-   * Posicao atual em tempos (float). Negativo durante a contagem.
-   * Interpola entre os tempos agendados, entao continua correto com bpm variavel.
+   * Current position in beats (float). Negative during the count-in.
+   * Interpolates between scheduled beats, so it stays correct with a varying bpm.
    */
   position(): number {
     const ctx = this.ctx
@@ -104,21 +104,21 @@ export class Transport {
         return m[i].index + frac * (next.index - m[i].index)
       }
     }
-    // Ainda antes do primeiro tempo agendado.
+    // Still before the first scheduled beat.
     return m[0].index - ((m[0].audio - now) * this.bpm) / 60
   }
 
-  /** Converte instante do relogio de audio pro epoch de performance.now(). */
+  /** Converts an audio-clock instant into the performance.now() epoch. */
   audioToPerf(audioTime: number): number {
     return audioTime * 1000 + this.offsetMs
   }
 
-  /** Duracao de um tempo em ms, no bpm atual. */
+  /** Length of one beat in ms, at the current bpm. */
   beatMs(): number {
     return 60000 / this.bpm
   }
 
-  /** 0 a 1. Vale na hora, mesmo com o transporte rodando. */
+  /** 0 to 1. Takes effect immediately, even with the transport running. */
   setVolume(v: number): void {
     this.volume = Math.max(0, Math.min(1, v))
     if (this.clickGain) this.clickGain.gain.value = this.volume
@@ -137,14 +137,14 @@ export class Transport {
   private syncOffset(): void {
     const ctx = this.ctx
     if (!ctx) return
-    // getOutputTimestamp da os dois relogios no mesmo instante, que e exatamente
-    // a ponte que precisamos. Nem todo browser tem — ai amostra na mao.
+    // getOutputTimestamp gives both clocks at the same instant, which is exactly
+    // the bridge we need. Not every browser has it — then we sample by hand.
     const ts = ctx.getOutputTimestamp?.()
     const next =
       ts && ts.contextTime !== undefined && ts.performanceTime !== undefined
         ? ts.performanceTime - ts.contextTime * 1000
         : performance.now() - ctx.currentTime * 1000
-    // Primeira medida entra inteira; depois suaviza, senao a grade treme.
+    // The first measurement lands whole; after that it smooths, or the grid shakes.
     this.offsetMs = this.offsetMs === 0 ? next : this.offsetMs * 0.9 + next * 0.1
   }
 
@@ -165,7 +165,7 @@ export class Transport {
     const isDownbeat = beatInBar === 0
     const isCountIn = index < 0
 
-    // Contagem soa diferente do exercicio, pra nao confundir a entrada.
+    // The count-in sounds different from the exercise, so the entry is not confusing.
     this.click(audio, isDownbeat ? 1200 : 800, isCountIn ? 0.5 : isDownbeat ? 0.6 : 0.35)
 
     for (let s = 1; s < this.clicksPerBeat; s++) {
@@ -185,11 +185,11 @@ export class Transport {
   }
 
   /**
-   * Nota sintetizada, pra demonstrar o exercicio antes de voce tocar.
+   * Synthesized note, to demonstrate the exercise before you play it.
    *
-   * Nao e piano amostrado — sao dois osciladores com queda exponencial. O que
-   * importa aqui e altura e ritmo audiveis pra decorar o desenho; carregar
-   * megabytes de sample pra isso nao se paga.
+   * It is not a sampled piano — it is two oscillators with an exponential decay.
+   * What matters here is audible pitch and rhythm to memorize the shape; loading
+   * megabytes of samples for that does not pay for itself.
    */
   note(midi: number, atAudio: number, durS: number, gain = 0.16): void {
     const ctx = this.ctx
@@ -198,29 +198,29 @@ export class Transport {
     const env = ctx.createGain()
     env.connect(ctx.destination)
 
-    // Fundamental com corpo + oitava fraca por cima: da o brilho do ataque sem
-    // virar onda quadrada.
-    const corpo = ctx.createOscillator()
-    corpo.type = 'triangle'
-    corpo.frequency.value = freq
-    const brilho = ctx.createOscillator()
-    brilho.type = 'sine'
-    brilho.frequency.value = freq * 2
+    // Fundamental with body + a weak octave on top: gives the attack its edge
+    // without turning into a square wave.
+    const body = ctx.createOscillator()
+    body.type = 'triangle'
+    body.frequency.value = freq
+    const shine = ctx.createOscillator()
+    shine.type = 'sine'
+    shine.frequency.value = freq * 2
 
-    const brilhoGain = ctx.createGain()
-    brilhoGain.gain.value = 0.3
-    brilho.connect(brilhoGain)
-    brilhoGain.connect(env)
-    corpo.connect(env)
+    const shineGain = ctx.createGain()
+    shineGain.gain.value = 0.3
+    shine.connect(shineGain)
+    shineGain.connect(env)
+    body.connect(env)
 
-    const fim = atAudio + durS
+    const end = atAudio + durS
     env.gain.setValueAtTime(0.0001, atAudio)
     env.gain.exponentialRampToValueAtTime(gain, atAudio + 0.004)
-    env.gain.exponentialRampToValueAtTime(0.0001, fim)
+    env.gain.exponentialRampToValueAtTime(0.0001, end)
 
-    for (const osc of [corpo, brilho]) {
+    for (const osc of [body, shine]) {
       osc.start(atAudio)
-      osc.stop(fim + 0.02)
+      osc.stop(end + 0.02)
     }
   }
 
@@ -230,8 +230,8 @@ export class Transport {
     const osc = ctx.createOscillator()
     const env = ctx.createGain()
     osc.frequency.value = freq
-    // Ataque instantaneo e queda rapida: e um clique, nao uma nota. Rampa
-    // exponencial porque linear ate zero estala.
+    // Instant attack and fast decay: it is a click, not a note. Exponential ramp
+    // because a linear one down to zero pops.
     env.gain.setValueAtTime(0.0001, time)
     env.gain.exponentialRampToValueAtTime(gain, time + 0.002)
     env.gain.exponentialRampToValueAtTime(0.0001, time + 0.05)

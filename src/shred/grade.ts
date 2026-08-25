@@ -1,10 +1,11 @@
 import type { ExpectedNote } from './pattern'
 
-// Avaliacao de uma repeticao.
+// Grading one repetition.
 //
-// A pergunta nao e "voce grudou no clique" — e "voce tocou as notas certas, na
-// ordem, com espacamento REGULAR, no tempo pedido". Shred embolado quase sempre
-// esta no tempo em media e irregular no detalhe, e e isso que a metrica pega.
+// The question is not "did you stick to the click" — it is "did you play the
+// right notes, in order, EVENLY spaced, at the tempo asked for". Sloppy shred is
+// almost always on time on average and uneven in the detail, and that is what
+// this metric catches.
 
 export type PlayedNote = {
   midi: number
@@ -17,79 +18,79 @@ export type NoteStatus = 'matched' | 'missed'
 
 export type GradeConfig = {
   bpm: number
-  /** perf time do tempo 0, vindo do transporte. Sem isso o grid e estimado. */
+  /** perf time of beat 0, from the transport. Without it the grid is estimated. */
   originMs?: number
-  /** Fracao de erros tolerada. 0.02 = 2%. */
+  /** Fraction of errors tolerated. 0.02 = 2%. */
   maxErrorRate: number
-  /** Teto do coeficiente de variacao dos intervalos entre ataques. */
+  /** Ceiling on the coefficient of variation of the inter-onset intervals. */
   maxIoiCv: number
-  /** Desvio de andamento tolerado, fracao. 0.03 = 3%. */
+  /** Tempo deviation tolerated, as a fraction. 0.03 = 3%. */
   maxBpmDeviation: number
   /**
-   * Timing reprova? Com false, regularidade e andamento continuam medidos e
-   * exibidos, mas nao seguram a aprovacao — e o modo de quem ainda esta
-   * decorando o desenho e nao tem por que brigar com o relogio ainda.
+   * Does timing fail you? With false, evenness and tempo are still measured and
+   * displayed, but they do not hold back a pass — this is the mode for someone
+   * still memorizing the shape, who has no reason to fight the clock yet.
    */
   timingGates?: boolean
   /**
-   * Onde cada tempo DEVERIA cair, em ms desde o inicio. O padrao e a grade
-   * constante do bpm; o modo accel passa a propria curva. Tudo que depende de
-   * tempo esperado sai daqui, entao andamento variavel nao vira caso especial.
+   * Where each beat SHOULD land, in ms since the start. The default is the
+   * constant grid from the bpm; accel mode passes its own curve. Everything that
+   * depends on expected time comes from here, so a varying tempo is no special case.
    */
   expectedMsAt?: (beat: number) => number
 }
 
 export type Grade = {
-  /** Situacao de cada nota esperada, por index. */
+  /** State of each expected note, by index. */
   status: NoteStatus[]
-  /** Indice em `played` de cada nota casada, ou -1. */
+  /** Index into `played` for each matched note, or -1. */
   matchOf: number[]
   missed: number
-  /** Notas tocadas que nao casaram com nada: erradas ou a mais. */
+  /** Played notes that matched nothing: wrong or surplus. */
   extra: number
   errors: number
   accuracy: number
-  /** Coeficiente de variacao dos IOIs normalizados. A metrica que decide. */
+  /** Coefficient of variation of the normalized IOIs. The deciding metric. */
   ioiCv: number
-  /** Desvio em ms do intervalo que CHEGA em cada grupo. Diz qual nota atrasa. */
+  /** Deviation in ms of the interval ARRIVING at each group. Says which note drags. */
   perGroupDevMs: (number | null)[]
   effectiveBpm: number
-  /** Desvio medio absoluto do grid do metronomo, em ms. Informativo. */
+  /** Mean absolute deviation from the metronome grid, in ms. Informational. */
   gridMadMs: number
   velocityStdev: number
-  /** Espalhamento medio dentro de um grupo: sincronia das duas maos, em ms. */
+  /** Mean spread within a group: how synchronized the two hands are, in ms. */
   handSpreadMs: number
   /**
-   * Alguem tentou tocar esta volta? Volta vazia (ajustando o teclado, lendo a
-   * tela, saiu da sala) nao e erro de execucao e nao pode puxar o andamento.
+   * Did anyone try to play this rep? An empty rep (adjusting the keyboard, reading
+   * the screen, left the room) is not a performance error and must not pull the tempo down.
    */
   attempted: boolean
-  /** Alturas esperadas que nao vieram, e tocadas que nao casaram. Pra UI mostrar. */
+  /** Expected pitches that never came, and played ones that matched nothing. For the UI. */
   missedNotes: number[]
   extraNotes: number[]
   /**
-   * Se o que faltou e o que sobrou casam por um deslocamento constante, o
-   * deslocamento em semitons. E o caso "toquei tudo uma oitava abaixo", que
-   * senao aparece como erro puro e a pessoa jura que tocou certo.
+   * If what was missing and what was extra line up by a constant offset, the
+   * offset in semitones. This is the "I played it all an octave down" case, which
+   * otherwise shows up as raw error while the player swears they got it right.
    */
   transposeHint: number | null
   passed: boolean
-  /** Por que reprovou, pra UI dizer o que corrigir. */
+  /** Why it failed, so the UI can say what to fix. */
   reasons: string[]
 }
 
-/** Quantos grupos a frente o casamento procura no caso normal. */
+/** How many groups ahead the matching looks in the normal case. */
 const LOOKAHEAD = 3
 /**
- * Busca larga pra reencontrar a linha depois de um tropeco. Sem isto, pular
- * mais notas que o LOOKAHEAD fazia o cursor travar e TODO o resto da volta
- * virar "sobrando" — a pessoa tocava certo e o app dizia que era tudo errado.
- * Só entra depois de dois ataques seguidos sem casar, senao uma nota errada
- * isolada faria o cursor pular pra frente sozinho.
+ * Wide search to find the line again after a stumble. Without it, skipping more
+ * notes than LOOKAHEAD froze the cursor and turned ALL the rest of the rep into
+ * "extra" — the player was right and the app called everything wrong. It only
+ * kicks in after two consecutive unmatched onsets, otherwise one isolated wrong
+ * note would send the cursor jumping ahead on its own.
  */
 const RESYNC_LOOKAHEAD = 24
 const RESYNC_AFTER = 2
-/** Abaixo disso nao da pra falar de regularidade. */
+/** Below this there is no talking about evenness. */
 const MIN_GROUPS_FOR_TIMING = 4
 
 function mean(xs: number[]): number {
@@ -115,9 +116,9 @@ export function groupExpected(expected: ExpectedNote[]): Group[] {
 }
 
 /**
- * Casa o tocado com o esperado, em ordem, com janela curta de lookahead.
- * Uma nota errada nao cascateia: o algoritmo reencontra a linha no grupo
- * seguinte em vez de dar tudo como errado dali pra frente.
+ * Matches played against expected, in order, with a short lookahead window.
+ * One wrong note does not cascade: the algorithm finds the line again on the next
+ * group instead of calling everything wrong from there on.
  */
 export function grade(
   expected: ExpectedNote[],
@@ -132,13 +133,13 @@ export function grade(
 
   let cursor = 0
   let extra = 0
-  let semCasar = 0
+  let unmatched = 0
 
-  const procurar = (note: PlayedNote, ate: number): [number, number] => {
-    for (let k = cursor; k < ate; k++) {
+  const search = (note: PlayedNote, until: number): [number, number] => {
+    for (let k = cursor; k < until; k++) {
       for (const e of groups[k].notes) {
-        // Dentro de um grupo a ordem nao importa: sao notas que deveriam soar
-        // juntas, e o MIDI sempre entrega uma antes da outra.
+        // Within a group the order does not matter: these are notes meant to sound
+        // together, and MIDI always delivers one before the other.
         if (status[e.index] === 'missed' && matchOf[e.index] === -1 && e.midi === note.midi) {
           return [k, e.index]
         }
@@ -149,25 +150,25 @@ export function grade(
 
   for (let p = 0; p < notes.length; p++) {
     const note = notes[p]
-    let [hitGroup, hitIndex] = procurar(note, Math.min(groups.length, cursor + LOOKAHEAD + 1))
+    let [hitGroup, hitIndex] = search(note, Math.min(groups.length, cursor + LOOKAHEAD + 1))
 
-    if (hitGroup < 0 && semCasar >= RESYNC_AFTER - 1) {
-      // Perdeu a linha: abre a janela pra reencontrar em vez de dar tudo que
-      // vem depois como erro.
-      ;[hitGroup, hitIndex] = procurar(note, Math.min(groups.length, cursor + RESYNC_LOOKAHEAD + 1))
+    if (hitGroup < 0 && unmatched >= RESYNC_AFTER - 1) {
+      // Lost the line: open the window to find it again instead of calling
+      // everything that follows an error.
+      ;[hitGroup, hitIndex] = search(note, Math.min(groups.length, cursor + RESYNC_LOOKAHEAD + 1))
     }
 
     if (hitGroup < 0) {
       extra++
-      semCasar++
+      unmatched++
       continue
     }
-    semCasar = 0
+    unmatched = 0
 
     status[hitIndex] = 'matched'
     matchOf[hitIndex] = p
     cursor = hitGroup
-    // Grupo completo: anda pro proximo que ainda tem nota pendente.
+    // Group complete: move on to the next one that still has a note pending.
     while (cursor < groups.length && groups[cursor].notes.every((e) => status[e.index] === 'matched')) {
       cursor++
     }
@@ -177,12 +178,12 @@ export function grade(
   const errors = missed + extra
   const accuracy = expected.length ? (expected.length - missed) / expected.length : 0
 
-  // --- tempo -------------------------------------------------------------
+  // --- timing ------------------------------------------------------------
   const beatMs = 60000 / config.bpm
   const expectedMsAt = config.expectedMsAt ?? ((beat: number) => beat * beatMs)
 
-  // Ataque de cada grupo = a primeira nota casada dele. Grupo sem nota casada
-  // quebra a cadeia e nao entra em nenhum IOI.
+  // Onset of each group = its first matched note. A group with no matched note
+  // breaks the chain and enters no IOI.
   const onsets: (number | null)[] = groups.map((g) => {
     const times = g.notes
       .filter((e) => status[e.index] === 'matched')
@@ -208,8 +209,8 @@ export function grade(
     if (a === null || b === null) continue
     const expectedMs = expectedMsAt(groups[k].beat) - expectedMsAt(groups[k - 1].beat)
     if (expectedMs <= 0) continue
-    // Normalizar pelo intervalo esperado faz a mesma metrica servir pra ritmo
-    // uniforme e pra agrupamento irregular, sem caso especial.
+    // Normalizing by the expected interval lets the same metric serve a uniform
+    // rhythm and an irregular grouping, with no special case.
     normalized.push((b - a) / expectedMs)
     rawIoi.push({ at: k, actual: b - a, expected: expectedMs })
   }
@@ -217,16 +218,17 @@ export function grade(
   const ioiMean = mean(normalized)
   const ioiCv = ioiMean > 0 ? stdev(normalized) / ioiMean : 0
 
-  // Desvio em ms contra o espacamento MEDIO da propria pessoa, nao contra o
-  // ideal: interessa saber qual nota destoa do resto, nao que tudo esta lento.
+  // Deviation in ms against the player's OWN average spacing, not against the
+  // ideal: what matters is which note stands out, not that everything is slow.
   for (const r of rawIoi) {
     perGroupDevMs[r.at] = r.actual - r.expected * ioiMean
   }
 
   const firstIdx = onsets.findIndex((o) => o !== null)
   const lastIdx = onsets.length - 1 - [...onsets].reverse().findIndex((o) => o !== null)
-  // Andamento efetivo como razao entre o tempo que ISSO deveria durar e o que
-  // durou. Com bpm constante da o bpm real; com curva, da o bpm equivalente.
+  // Effective tempo as the ratio between how long THIS should have taken and how
+  // long it did. With a constant bpm it gives the real bpm; with a curve, the
+  // equivalent bpm.
   let effectiveBpm = 0
   if (firstIdx >= 0 && lastIdx > firstIdx) {
     const elapsed = (onsets[lastIdx] as number) - (onsets[firstIdx] as number)
@@ -234,8 +236,8 @@ export function grade(
     if (elapsed > 0 && span > 0) effectiveBpm = (config.bpm * span) / elapsed
   }
 
-  // Grid: se o transporte deu o instante do tempo 0, mede contra ele. Senao
-  // ancora na primeira nota — vira medida de forma, nao de entrada.
+  // Grid: if the transport gave the instant of beat 0, measure against it.
+  // Otherwise anchor on the first note — it becomes a measure of shape, not entry.
   const origin =
     config.originMs ??
     (firstIdx >= 0 ? (onsets[firstIdx] as number) - expectedMsAt(groups[firstIdx].beat) : 0)
@@ -253,18 +255,18 @@ export function grade(
   const missedNotes = expected.filter((e) => status[e.index] === 'missed').map((e) => e.midi)
   const matchedPlayed = new Set(matchOf.filter((i) => i >= 0))
   const extraNotes = notes.filter((_, i) => !matchedPlayed.has(i)).map((n) => n.midi)
-  // Compara a execucao INTEIRA, nao o que sobrou do casamento: numa escala
-  // transposta o matcher casa varias notas por coincidencia diatonica, e o
-  // residuo nunca fecha — mesmo com a pessoa tendo tocado tudo na oitava errada.
+  // Compares the WHOLE performance, not what the matching left over: on a
+  // transposed scale the matcher pairs several notes by diatonic coincidence, and
+  // the residue never adds up — even though everything was played in the wrong octave.
   const transposeHint = detectTranspose(
     expected.map((e) => e.midi),
     notes.map((n) => n.midi),
   )
 
-  // --- veredito ----------------------------------------------------------
+  // --- verdict -----------------------------------------------------------
   const reasons: string[] = []
-  // Nunca zero: num desenho de 17 notas, 2% arredondado pra baixo exigiria
-  // execucao perfeita, e isso nao e treino, e loteria.
+  // Never zero: on a 17-note shape, 2% rounded down would demand a perfect
+  // performance, and that is not practice, it is a lottery.
   const errorBudget = Math.max(1, Math.round(config.maxErrorRate * expected.length))
   const attempted = expected.length - missed >= Math.max(3, expected.length * 0.25)
 
@@ -274,38 +276,38 @@ export function grade(
       effectiveBpm, gridMadMs: mean(gridErrors), velocityStdev: stdev(velocities),
       handSpreadMs: mean(spreads), attempted, missedNotes, extraNotes, transposeHint,
       passed: false,
-      reasons: ['volta sem execucao'],
+      reasons: ['rep with nothing played'],
     }
   }
   const judgeable = normalized.length >= MIN_GROUPS_FOR_TIMING - 1
 
   if (errors > errorBudget) {
     reasons.push(
-      `${errors} erro${errors > 1 ? 's' : ''} (${missed} faltando, ${extra} sobrando) — limite ${errorBudget}`,
+      `${errors} error${errors > 1 ? 's' : ''} (${missed} missing, ${extra} extra) — limit ${errorBudget}`,
     )
     if (transposeHint !== null) {
-      const oitavas = transposeHint % 12 === 0 ? Math.abs(transposeHint) / 12 : 0
+      const octaves = transposeHint % 12 === 0 ? Math.abs(transposeHint) / 12 : 0
       reasons.push(
-        oitavas
-          ? `voce tocou tudo ${oitavas} oitava${oitavas > 1 ? 's' : ''} ${transposeHint < 0 ? 'abaixo' : 'acima'}`
-          : `voce tocou tudo ${Math.abs(transposeHint)} semitons ${transposeHint < 0 ? 'abaixo' : 'acima'}`,
+        octaves
+          ? `you played the whole thing ${octaves} octave${octaves > 1 ? 's' : ''} ${transposeHint < 0 ? 'down' : 'up'}`
+          : `you played the whole thing ${Math.abs(transposeHint)} semitones ${transposeHint < 0 ? 'down' : 'up'}`,
       )
     }
   }
   const timingGates = config.timingGates ?? true
 
   if (!timingGates) {
-    // Nada de timing entra no veredito.
+    // No timing enters the verdict.
   } else if (!judgeable) {
-    reasons.push('notas de menos pra medir regularidade')
+    reasons.push('too few notes to measure evenness')
   } else {
     if (ioiCv > config.maxIoiCv) {
-      reasons.push(`irregular: CV ${(ioiCv * 100).toFixed(1)}% — limite ${(config.maxIoiCv * 100).toFixed(0)}%`)
+      reasons.push(`uneven: CV ${(ioiCv * 100).toFixed(1)}% — limit ${(config.maxIoiCv * 100).toFixed(0)}%`)
     }
     const drift = Math.abs(effectiveBpm - config.bpm) / config.bpm
     if (drift > config.maxBpmDeviation) {
       reasons.push(
-        `fora do andamento: ${Math.round(effectiveBpm)} BPM contra ${Math.round(config.bpm)} pedidos`,
+        `off tempo: ${Math.round(effectiveBpm)} BPM against the ${Math.round(config.bpm)} asked for`,
       )
     }
   }
@@ -333,9 +335,9 @@ export function grade(
 }
 
 /**
- * O que foi tocado e o desenho esperado deslocado por igual?
- * Compara como conjunto ordenado, entao nao depende da ordem de chegada de
- * notas que soam juntas. Devolve o deslocamento em semitons, ou null.
+ * Is what was played the expected shape shifted by a constant?
+ * Compares as a sorted set, so it does not depend on the arrival order of notes
+ * that sound together. Returns the offset in semitones, or null.
  */
 export function detectTranspose(expected: number[], played: number[]): number | null {
   if (expected.length < 3 || expected.length !== played.length) return null
@@ -346,7 +348,7 @@ export function detectTranspose(expected: number[], played: number[]): number | 
   return a.every((n, i) => b[i] - n === shift) ? shift : null
 }
 
-/** Nota esperada -> nome do dedo/mao pra UI. Pequeno, mas usado em dois lugares. */
+/** Expected note -> finger/hand label for the UI. Small, but used in two places. */
 export function noteLabel(e: ExpectedNote): string {
-  return e.finger ? `${e.hand === 'l' ? 'ME' : 'MD'} ${e.finger}` : e.hand === 'l' ? 'ME' : 'MD'
+  return e.finger ? `${e.hand === 'l' ? 'LH' : 'RH'} ${e.finger}` : e.hand === 'l' ? 'LH' : 'RH'
 }

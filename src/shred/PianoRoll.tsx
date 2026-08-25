@@ -2,19 +2,19 @@ import { useEffect, useRef } from 'react'
 import { keyLayout } from '../Keyboard'
 import type { ExpectedNote } from './pattern'
 
-// Notas caindo em cima do teclado. Canvas e nao SVG porque isto redesenha a
-// 60fps: mexer em atributos de SVG por estado do React nesse ritmo trava.
+// Notes falling onto the keyboard. Canvas and not SVG because this redraws at
+// 60fps: touching SVG attributes through React state at that rate stutters.
 //
-// O eixo X vem de keyLayout, o MESMO que o teclado SVG usa, e os dois elementos
-// tem width:100% no mesmo container — entao uma nota cai exatamente sobre a
-// tecla dela em qualquer largura de tela.
+// The X axis comes from keyLayout, the SAME one the SVG keyboard uses, and both
+// elements are width:100% in the same container — so a note lands exactly on its
+// own key at any screen width.
 
 export const ROLL_H = 260
 
 export type PlayedMark = {
   midi: number
   beat: number
-  /** Desvio em ms contra a grade: <0 adiantou, >0 atrasou. */
+  /** Deviation in ms against the grid: <0 rushed, >0 dragged. */
   devMs: number
 }
 
@@ -22,13 +22,13 @@ type Props = {
   expected: ExpectedNote[]
   low: number
   high: number
-  /** Posicao atual em tempos. NaN quando parado. */
+  /** Current position in beats. NaN when stopped. */
   getPosition: () => number
   getPlayed: () => PlayedMark[]
   beatsPerBar: number
-  /** Duracao de uma volta em tempos: o desenho se repete a cada uma. */
+  /** Length of one rep in beats: the shape repeats every one of them. */
   cycleBeats: number
-  /** Quantos tempos cabem na altura da tela. */
+  /** How many beats fit in the height of the view. */
   windowBeats?: number
   showFingers: boolean
   active: boolean
@@ -80,7 +80,7 @@ export function PianoRoll({
     }
 
     const pxPerBeat = ROLL_H / windowBeats
-    // A linha de ataque fica em baixo, encostada no teclado: a nota "chega" ali.
+    // The hit line sits at the bottom, against the keyboard: the note "arrives" there.
     const hitY = ROLL_H - 6
 
     let raf = 0
@@ -94,13 +94,13 @@ export function PianoRoll({
       const pos = posRef.current()
       const p = Number.isFinite(pos) ? pos : 0
 
-      // Trilhos das teclas pretas: dao referencia de altura sem poluir.
+      // Black key lanes: they give a pitch reference without cluttering.
       ctx.fillStyle = 'rgba(255,255,255,0.035)'
       for (const k of layout.keys) {
         if (k.black) ctx.fillRect(k.x, 0, k.w, ROLL_H)
       }
 
-      // Linhas de tempo. A cabeca do compasso e mais forte.
+      // Beat lines. The downbeat is stronger.
       const first = Math.floor(p)
       for (let b = first; b <= p + windowBeats + 1; b++) {
         const y = hitY - (b - p) * pxPerBeat
@@ -114,23 +114,23 @@ export function PianoRoll({
         ctx.stroke()
       }
 
-      // Notas esperadas: contorno, cor por mao. O exercicio roda em loop, entao
-      // desenha a volta atual e a proxima — senao a tela esvazia na segunda.
+      // Expected notes: outline, coloured by hand. The exercise runs in a loop, so
+      // it draws the current rep and the next — otherwise the view empties on the second.
       const drawExpected = (e: ExpectedNote, beat: number) => {
         const y = hitY - (beat - p) * pxPerBeat
         if (y < -20 || y > ROLL_H + 20) return
         const x = layout.xOf(e.midi)
         if (!Number.isFinite(x)) return
-        const preta = [1, 3, 6, 8, 10].includes(e.midi % 12)
-        const w = preta ? 12 : 18
+        const black = [1, 3, 6, 8, 10].includes(e.midi % 12)
+        const w = black ? 12 : 18
         ctx.strokeStyle = e.hand === 'l' ? colors.dim : colors.accent
         ctx.lineWidth = 2
         ctx.beginPath()
         ctx.roundRect(x - w / 2, y - 9, w, 9, 3)
         ctx.stroke()
 
-        // Numero do dedo. Fica dentro da propria nota, nao flutuando acima:
-        // com semicolcheias em duas maos, numero solto vira sopa.
+        // Finger number. It sits on the note itself, not floating above it: with
+        // sixteenths in two hands, a loose number turns into soup.
         if (showFingers && e.finger && y > 4 && y < ROLL_H) {
           ctx.fillStyle = e.hand === 'l' ? colors.dim : colors.accent
           ctx.font = 'bold 13px ui-monospace, SFMono-Regular, monospace'
@@ -153,7 +153,7 @@ export function PianoRoll({
         }
       }
 
-      // Notas tocadas: bolinha cheia, cor pelo erro de tempo.
+      // Played notes: filled dot, coloured by the timing error.
       for (const m of playedRef.current()) {
         const y = hitY - (m.beat - p) * pxPerBeat
         if (y < -10 || y > ROLL_H + 10) continue
@@ -166,7 +166,7 @@ export function PianoRoll({
         ctx.fill()
       }
 
-      // Linha de ataque.
+      // Hit line.
       ctx.strokeStyle = active ? colors.ok : colors.miss
       ctx.lineWidth = 2
       ctx.beginPath()
@@ -179,7 +179,7 @@ export function PianoRoll({
 
     raf = requestAnimationFrame(draw)
     return () => cancelAnimationFrame(raf)
-    // expected muda quando troca exercicio ou tom; o resto vem por ref.
+    // expected changes when the exercise or key changes; the rest comes in by ref.
   }, [expected, low, high, width, beatsPerBar, cycleBeats, windowBeats, showFingers, active])
 
   return (
@@ -188,7 +188,7 @@ export function PianoRoll({
       className="piano-roll"
       style={{ width: '100%', height: 'auto', aspectRatio: `${width} / ${ROLL_H}` }}
       role="img"
-      aria-label="notas do exercicio caindo"
+      aria-label="falling exercise notes"
     />
   )
 }

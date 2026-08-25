@@ -1,8 +1,8 @@
 import { describe, expect, it, beforeEach } from 'vitest'
 import { DEFAULT_SETTINGS, loadSettings, saveSettings } from './shredStats'
 
-// jsdom nao esta ligado; um localStorage de mentira basta pra testar a
-// normalizacao, que e onde o bug de campo faltando aparece.
+// jsdom is not enabled; a fake localStorage is enough to test the normalization,
+// which is where the missing-field bug shows up.
 const store = new Map<string, string>()
 beforeEach(() => store.clear())
 ;(globalThis as unknown as { localStorage: Storage }).localStorage = {
@@ -14,16 +14,16 @@ beforeEach(() => store.clear())
   length: 0,
 } as Storage
 
-describe('normalizacao das preferencias', () => {
-  it('preenche campo que uma versao antiga nao salvava', () => {
-    // Exatamente o formato gravado antes de existir clickVolume.
-    store.set('pjt:shred:settings', JSON.stringify({ low: 36, high: 84, latencyMs: 0, strictness: 'padrao' }))
+describe('normalizing the preferences', () => {
+  it('fills in a field an older version did not save', () => {
+    // Exactly the format written before clickVolume existed.
+    store.set('pjt:shred:settings', JSON.stringify({ low: 36, high: 84, latencyMs: 0, strictness: 'standard' }))
     const s = loadSettings()
     expect(Number.isFinite(s.clickVolume)).toBe(true)
     expect(s.clickVolume).toBe(DEFAULT_SETTINGS.clickVolume)
   })
 
-  it('gravar tambem completa, entao o que volta nunca tem buraco', () => {
+  it('saving completes too, so what comes back never has a hole', () => {
     const s = saveSettings({ low: 36, high: 84 })
     expect(Number.isFinite(s.clickVolume)).toBe(true)
     expect(Number.isFinite(s.latencyMs)).toBe(true)
@@ -31,23 +31,30 @@ describe('normalizacao das preferencias', () => {
     expect(JSON.parse(store.get('pjt:shred:settings') as string)).toEqual(s)
   })
 
-  it('volume fora de 0..1 e cortado', () => {
+  it('a volume outside 0..1 is clamped', () => {
     expect(saveSettings({ ...DEFAULT_SETTINGS, clickVolume: 5 }).clickVolume).toBe(1)
     expect(saveSettings({ ...DEFAULT_SETTINGS, clickVolume: -2 }).clickVolume).toBe(0)
   })
 
-  it('faixa de teclado pequena demais cai no padrao', () => {
+  it('a keyboard range that is too small falls back to the default', () => {
     expect(saveSettings({ low: 60, high: 62 })).toEqual(DEFAULT_SETTINGS)
   })
 
-  it('storage corrompido nao derruba', () => {
-    store.set('pjt:shred:settings', '{isso nao e json')
+  it('a strictness value that no longer exists falls back to the default', () => {
+    // Settings written by the Portuguese build carry strictness: 'padrao'. Left
+    // as-is it would reach toleranceFor() and match no case.
+    store.set('pjt:shred:settings', JSON.stringify({ low: 36, high: 84, strictness: 'padrao' }))
+    expect(loadSettings().strictness).toBe(DEFAULT_SETTINGS.strictness)
+  })
+
+  it('corrupt storage does not take it down', () => {
+    store.set('pjt:shred:settings', '{this is not json')
     expect(loadSettings()).toEqual(DEFAULT_SETTINGS)
   })
 })
 
-describe('o que estava selecionado sobrevive ao reload', () => {
-  it('guarda e devolve os selects', () => {
+describe('what was selected survives a reload', () => {
+  it('stores and returns the selects', () => {
     saveSettings({
       ...DEFAULT_SETTINGS,
       exerciseId: 'dim7-arpeggio',
@@ -66,17 +73,17 @@ describe('o que estava selecionado sobrevive ao reload', () => {
     expect(s.qwerty).toBe(true)
   })
 
-  it('tom fora de 0..11 e cortado', () => {
+  it('a key outside 0..11 is clamped', () => {
     expect(saveSettings({ ...DEFAULT_SETTINGS, rootPc: 40 }).rootPc).toBe(11)
     expect(saveSettings({ ...DEFAULT_SETTINGS, rootPc: -3 }).rootPc).toBe(0)
   })
 
-  it('qwerty so liga com true explicito', () => {
-    store.set('pjt:shred:settings', JSON.stringify({ low: 36, high: 84, qwerty: 'sim' }))
+  it('qwerty only turns on with an explicit true', () => {
+    store.set('pjt:shred:settings', JSON.stringify({ low: 36, high: 84, qwerty: 'yes' }))
     expect(loadSettings().qwerty).toBe(false)
   })
 
-  it('storage sem os campos novos nao quebra', () => {
+  it('storage without the newer fields does not break', () => {
     store.set('pjt:shred:settings', JSON.stringify({ low: 36, high: 84 }))
     const s = loadSettings()
     expect(s.exerciseId).toBe('')
@@ -85,27 +92,27 @@ describe('o que estava selecionado sobrevive ao reload', () => {
   })
 })
 
-describe('referencia continua', () => {
-  it('desligada por padrao: piano tocando junto e escolha, nao surpresa', () => {
+describe('continuous guide', () => {
+  it('off by default: a piano playing along is a choice, not a surprise', () => {
     store.set('pjt:shred:settings', JSON.stringify({ low: 36, high: 84 }))
     expect(loadSettings().guide).toBe(false)
     expect(loadSettings().guideVolume).toBe(DEFAULT_SETTINGS.guideVolume)
   })
 
-  it('guarda o par ligado/volume', () => {
+  it('stores the on/volume pair', () => {
     const s = saveSettings({ ...DEFAULT_SETTINGS, guide: true, guideVolume: 0.35 })
     expect(s.guide).toBe(true)
     expect(s.guideVolume).toBe(0.35)
     expect(loadSettings().guide).toBe(true)
   })
 
-  it('volume da referencia e do clique sao independentes', () => {
+  it('the guide volume and the click volume are independent', () => {
     const s = saveSettings({ ...DEFAULT_SETTINGS, clickVolume: 0, guideVolume: 1 })
     expect(s.clickVolume).toBe(0)
     expect(s.guideVolume).toBe(1)
   })
 
-  it('volume fora de 0..1 e cortado', () => {
+  it('a volume outside 0..1 is clamped', () => {
     expect(saveSettings({ ...DEFAULT_SETTINGS, guideVolume: 9 }).guideVolume).toBe(1)
     expect(saveSettings({ ...DEFAULT_SETTINGS, guideVolume: -1 }).guideVolume).toBe(0)
   })

@@ -4,11 +4,11 @@ export type KeyMark = 'held' | 'correct' | 'extra' | 'missing'
 
 const BLACK_PCS = new Set([1, 3, 6, 8, 10])
 
-// Geometria exportada porque o piano-roll desenha em cima do mesmo eixo: se as
-// duas coisas tivessem cada uma a sua conta, as notas cairiam fora da tecla.
-export const KEY_W = 26 // largura da tecla branca
+// Geometry is exported because the piano roll draws on this same axis: if each
+// of them did its own arithmetic, the notes would fall outside the key.
+export const KEY_W = 26 // white key width
 export const KEY_H = 120
-export const KEY_BW = 16 // largura da tecla preta
+export const KEY_BW = 16 // black key width
 export const KEY_BH = 76
 
 const W = KEY_W
@@ -19,7 +19,7 @@ const BH = KEY_BH
 export type KeyGeom = { midi: number; x: number; w: number; black: boolean }
 export type Layout = { keys: KeyGeom[]; width: number; xOf: (midi: number) => number }
 
-/** Posicao de cada tecla no intervalo. Fonte unica do eixo horizontal. */
+/** Position of every key in the range. Single source of the horizontal axis. */
 export function keyLayout(low: number, high: number): Layout {
   const keys: KeyGeom[] = []
   let whiteCount = 0
@@ -62,7 +62,7 @@ export function Keyboard({ marks, low = 36, high = 96, showNoteNames = true }: P
       viewBox={`0 0 ${width} ${labelY + 6}`}
       preserveAspectRatio="xMidYMid meet"
       role="img"
-      aria-label="teclado"
+      aria-label="keyboard"
     >
       {whites.map(({ midi, x }) => (
         <rect
@@ -98,7 +98,7 @@ export function Keyboard({ marks, low = 36, high = 96, showNoteNames = true }: P
   )
 }
 
-/** Monta o mapa de marcacao a partir do resultado de compareToTarget. */
+/** Builds the mark map from the result of compareToTarget. */
 export function marksFromComparison(c: {
   correct: number[]
   extra: number[]

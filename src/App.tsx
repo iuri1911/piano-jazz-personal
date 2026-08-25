@@ -26,7 +26,7 @@ export default function App() {
         <h1>Piano Jazz Trainer</h1>
         <nav>
           <button className={tab === 'viz' ? 'on' : ''} onClick={() => setTab('viz')}>
-            Visualizador
+            Visualizer
           </button>
           <button className={tab === 'drill' ? 'on' : ''} onClick={() => setTab('drill')}>
             Drill
@@ -42,9 +42,9 @@ export default function App() {
               checked={spelling === 'sharp'}
               onChange={(e) => setSpelling(e.target.checked ? 'sharp' : 'flat')}
             />
-            sustenidos
+            sharps
           </label>
-          <label title="Tempo sem eventos MIDI para considerar o acorde fechado">
+          <label title="Time without MIDI events before the chord counts as settled">
             settle {settleMs}ms
             <input
               type="range"
@@ -62,14 +62,14 @@ export default function App() {
         <p className="error">{error}</p>
       ) : (
         <p className="devices">
-          {devices.length ? `MIDI: ${devices.join(', ')}` : 'Nenhum dispositivo MIDI encontrado.'}
+          {devices.length ? `MIDI: ${devices.join(', ')}` : 'No MIDI device found.'}
           {pedal && <span className="pedal-on">pedal</span>}
         </p>
       )}
 
       {tab === 'viz' && <Visualizer held={held} settled={settled} spelling={spelling} />}
       {tab === 'drill' && <Drill settled={settled} spelling={spelling} />}
-      {/* Shred assina os eventos crus direto: acorde estavel nao serve pra nota solta. */}
+      {/* Shred subscribes to the raw events: a settled chord is no use for single notes. */}
       {tab === 'shred' && <Shred spelling={spelling} />}
     </div>
   )
@@ -84,7 +84,7 @@ function Visualizer({
   settled: number[]
   spelling: Spelling
 }) {
-  // Mostra o ultimo acorde estavel: continua no ar depois que voce solta as teclas.
+  // Shows the last settled chord: it stays up after you let go of the keys.
   const notes = settled
   const names = detectChord(notes, spelling)
   const match = detectVoicing(notes)
@@ -96,10 +96,10 @@ function Visualizer({
         <div className="chord-symbol">{names[0] ?? (notes.length ? '?' : '—')}</div>
         {match && (
           <div className="voicing-name">
-            {match.voicing.label} em {chordLabel(match.rootMidi % 12, match.quality, spelling)}
+            {match.voicing.label} on {chordLabel(match.rootMidi % 12, match.quality, spelling)}
           </div>
         )}
-        {names.length > 1 && <div className="alt-names">tambem: {names.slice(1, 4).join(', ')}</div>}
+        {names.length > 1 && <div className="alt-names">also: {names.slice(1, 4).join(', ')}</div>}
         <div className="note-list">{notes.map((n) => midiToName(n, spelling)).join(' ')}</div>
         <div className="intervals">{intervals.join(' ')}</div>
         {match?.voicing.note && <p className="voicing-note">{match.voicing.note}</p>}

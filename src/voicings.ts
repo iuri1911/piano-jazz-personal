@@ -1,11 +1,11 @@
-// Os 10 voicings do print, escritos como GRAUS (nao semitons) para que o mesmo
-// desenho sirva em m7, 7 e maj7 sem repetir tabela.
+// The 10 voicings, written as DEGREES (not semitones) so that the same shape
+// works over m7, 7 and maj7 without repeating the table.
 //
-// Sintaxe de um grau: numero + sufixo de oitava opcional.
-//   "3"   = terca na oitava base
-//   "3'"  = terca uma oitava acima
-//   "5,"  = quinta uma oitava abaixo
-// A alteracao (b3 vs 3, b7 vs 7) vem da qualidade do acorde, nao do token.
+// Syntax of a degree: number + optional octave suffix.
+//   "3"   = third in the base octave
+//   "3'"  = third one octave up
+//   "5,"  = fifth one octave down
+// The alteration (b3 vs 3, b7 vs 7) comes from the chord quality, not the token.
 
 export type Quality = 'm7' | '7' | 'maj7'
 
@@ -17,11 +17,11 @@ export const QUALITY_LABEL: Record<Quality, string> = {
   maj7: 'maj7',
 }
 
-// Semitons acima da fundamental para cada grau, por qualidade.
+// Semitones above the root for each degree, by quality.
 const DEGREE_SEMITONES: Record<Quality, Record<number, number>> = {
   m7: { 1: 0, 3: 3, 5: 7, 7: 10, 9: 14, 11: 17, 13: 21 },
-  '7': { 1: 0, 3: 4, 5: 7, 7: 10, 9: 14, 11: 18, 13: 21 }, // 11 = #11 em dominante
-  maj7: { 1: 0, 3: 4, 5: 7, 7: 11, 9: 14, 11: 18, 13: 21 }, // idem em maj7
+  '7': { 1: 0, 3: 4, 5: 7, 7: 10, 9: 14, 11: 18, 13: 21 }, // 11 = #11 on a dominant
+  maj7: { 1: 0, 3: 4, 5: 7, 7: 11, 9: 14, 11: 18, 13: 21 }, // same on maj7
 }
 
 export type Voicing = {
@@ -33,9 +33,9 @@ export type Voicing = {
   note?: string
 }
 
-// AJUSTE AQUI. Estes sao os valores de partida; se algum nao bater com o que
-// voce pratica, mexer so nesta tabela — todo o resto do app deriva dela.
-// Referencia: fundamental em C3 (MIDI 48).
+// TWEAK HERE. These are the starting values; if one does not match what you
+// practise, edit only this table — the rest of the app derives from it.
+// Reference: root at C3 (MIDI 48).
 export const VOICINGS: Voicing[] = [
   {
     id: 'shell-b',
@@ -64,7 +64,7 @@ export const VOICINGS: Voicing[] = [
     qualities: ['m7'],
     lh: ['1', '5', '9'],
     rh: ["3'", "7'", "11'"], // Cm7: C3 G3 D4 / Eb4 Bb4 F5
-    note: 'Duas quintas empilhadas em cada mao. So faz sentido em menor.',
+    note: 'Two stacked fifths in each hand. Only makes sense on a minor chord.',
   },
   {
     id: 'rootless-a',
@@ -72,7 +72,7 @@ export const VOICINGS: Voicing[] = [
     qualities: QUALITIES,
     lh: ['1'],
     rh: ["3'", "5'", "7'", "9'"], // Cm7: C3 / Eb4 G4 Bb4 D5
-    note: 'Bill Evans A: 3-5-7-9 a partir da terca.',
+    note: 'Bill Evans A: 3-5-7-9 starting from the third.',
   },
   {
     id: 'rootless-b',
@@ -80,7 +80,7 @@ export const VOICINGS: Voicing[] = [
     qualities: QUALITIES,
     lh: ['1'],
     rh: ['7', '9', "3'", "5'"], // Cm7: C3 / Bb3 D4 Eb4 G4
-    note: 'Bill Evans B: mesma nota, invertida a partir da setima.',
+    note: 'Bill Evans B: same notes, inverted to start from the seventh.',
   },
   {
     id: 'crunch-1',
@@ -88,7 +88,7 @@ export const VOICINGS: Voicing[] = [
     qualities: QUALITIES,
     lh: ['1'],
     rh: ['5', '7', '9', "3'"], // Cm7: C3 / G3 Bb3 D4 Eb4
-    note: 'Cluster: 9 e 3 encostadas no topo.',
+    note: 'Cluster: 9 and 3 rubbing against each other at the top.',
   },
   {
     id: 'crunch-2',
@@ -96,7 +96,7 @@ export const VOICINGS: Voicing[] = [
     qualities: QUALITIES,
     lh: ['1'],
     rh: ['9', "3'", "5'", "7'"], // Cm7: C3 / D4 Eb4 G4 Bb4
-    note: 'Mesmo cluster, agora com a 9 embaixo da 3.',
+    note: 'Same cluster, now with the 9 below the 3.',
   },
   {
     id: 'fourths',
@@ -112,7 +112,7 @@ export const VOICINGS: Voicing[] = [
     qualities: ['m7', '7'],
     lh: ['5,', '1'],
     rh: ['11,', '7', '9'], // Cm7: G2 C3 / F3 Bb3 D4
-    note: 'Tres quartas justas + uma terca maior no topo.',
+    note: 'Three perfect fourths + a major third on top.',
   },
 ]
 
@@ -120,23 +120,23 @@ export const VOICING_BY_ID = new Map(VOICINGS.map((v) => [v.id, v]))
 
 const DEGREE_RE = /^(\d+)('*)(,*)$/
 
-/** "3'" em m7 -> 15 semitons acima da fundamental. */
+/** "3'" on m7 -> 15 semitones above the root. */
 export function degreeToSemitones(token: string, quality: Quality): number {
   const m = DEGREE_RE.exec(token)
-  if (!m) throw new Error(`grau invalido: ${token}`)
+  if (!m) throw new Error(`invalid degree: ${token}`)
   const base = DEGREE_SEMITONES[quality][Number(m[1])]
-  if (base === undefined) throw new Error(`grau ${m[1]} nao existe em ${quality}`)
+  if (base === undefined) throw new Error(`degree ${m[1]} does not exist on ${quality}`)
   return base + 12 * (m[2].length - m[3].length)
 }
 
-/** Notas MIDI do voicing, ordenadas. rootMidi = fundamental (ex.: C3 = 48). */
+/** MIDI notes of the voicing, sorted. rootMidi = root (e.g. C3 = 48). */
 export function voicingToMidi(voicing: Voicing, quality: Quality, rootMidi: number): number[] {
   return [...voicing.lh, ...voicing.rh]
     .map((d) => rootMidi + degreeToSemitones(d, quality))
     .sort((a, b) => a - b)
 }
 
-/** Offsets em semitons a partir da nota mais grave — a assinatura do voicing. */
+/** Semitone offsets from the lowest note — the signature of the voicing. */
 export function voicingShape(voicing: Voicing, quality: Quality): number[] {
   const midi = voicingToMidi(voicing, quality, 0)
   return midi.map((n) => n - midi[0])

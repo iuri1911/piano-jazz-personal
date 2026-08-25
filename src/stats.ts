@@ -7,7 +7,7 @@ export function loadStats(): Stats {
   try {
     return JSON.parse(localStorage.getItem(KEY) ?? '{}') as Stats
   } catch {
-    return {} // storage corrompido nao pode derrubar o app
+    return {} // corrupt storage must not take the app down
   }
 }
 

@@ -16,7 +16,7 @@ const spec: PatternSpec = {
   anchorC: 48,
 }
 
-const expected = expandPattern(spec, 0, RANGE).notes // 15 semicolcheias subindo
+const expected = expandPattern(spec, 0, RANGE).notes // 15 sixteenths climbing
 
 const config: GradeConfig = {
   bpm: BPM,
@@ -37,13 +37,13 @@ function perfect(offset: (i: number) => number = () => 0): PlayedNote[] {
 }
 
 describe('groupExpected', () => {
-  it('um grupo por instante de ataque', () => {
+  it('one group per onset instant', () => {
     expect(groupExpected(expected)).toHaveLength(15)
   })
 })
 
 describe('grade', () => {
-  it('execucao perfeita passa', () => {
+  it('a perfect performance passes', () => {
     const g = grade(expected, perfect(), config)
     expect(g.missed).toBe(0)
     expect(g.extra).toBe(0)
@@ -55,43 +55,43 @@ describe('grade', () => {
     expect(g.reasons).toEqual([])
   })
 
-  it('aguenta jitter humano pequeno sem reprovar', () => {
-    // Desvio pequeno e sem padrao, ate 4ms numa semicolcheia de 125ms.
+  it('tolerates small human jitter without failing', () => {
+    // Small deviation with no pattern, up to 4ms on a 125ms sixteenth.
     const jitter = [0, 3, -2, 4, -3, 1, 2, -4, 0, 3, -1, 2, -3, 1, 0]
     const g = grade(expected, perfect((i) => jitter[i]), config)
     expect(g.ioiCv).toBeLessThan(config.maxIoiCv)
     expect(g.passed).toBe(true)
   })
 
-  it('pega balanco sistematico que jitter aleatorio nao dispara', () => {
-    // +-6ms alternado nao e ruido: e mancar. Vira 12ms de oscilacao no IOI,
-    // ~10% da semicolcheia, e da pra ouvir. Tem que reprovar.
+  it('catches a systematic swing that random jitter does not trigger', () => {
+    // Alternating +-6ms is not noise: it is a limp. It becomes 12ms of IOI
+    // oscillation, ~10% of the sixteenth, and it is audible. It has to fail.
     const g = grade(expected, perfect((i) => (i % 2 ? 6 : -6)), config)
     expect(g.ioiCv).toBeGreaterThan(config.maxIoiCv)
     expect(g.passed).toBe(false)
   })
 
-  it('nota derrubada conta como faltando e nao cascateia', () => {
+  it('a dropped note counts as missing and does not cascade', () => {
     const played = perfect().filter((_, i) => i !== 5)
     const g = grade(expected, played, config)
     expect(g.missed).toBe(1)
     expect(g.extra).toBe(0)
     expect(g.status[5]).toBe('missed')
-    // As de depois continuam casando: o alinhamento reencontrou a linha.
+    // The ones after keep matching: the alignment found the line again.
     expect(g.status.filter((s) => s === 'matched')).toHaveLength(14)
-    // Uma nota derrubada cabe no orcamento: exigir execucao perfeita numa volta
-    // de 15 notas nao e treino.
+    // One dropped note fits the budget: demanding a perfect performance on a
+    // 15-note rep is not practice.
     expect(g.passed).toBe(true)
   })
 
-  it('duas notas derrubadas ja estouram o orcamento', () => {
+  it('two dropped notes already blow the budget', () => {
     const played = perfect().filter((_, i) => i !== 5 && i !== 9)
     const g = grade(expected, played, config)
     expect(g.missed).toBe(2)
     expect(g.passed).toBe(false)
   })
 
-  it('nota a mais conta como sobrando e nao cascateia', () => {
+  it('an extra note counts as extra and does not cascade', () => {
     const played = perfect()
     played.splice(6, 0, { midi: 61, velocity: 80, onTime: played[5].onTime + 60 })
     const g = grade(expected, played, config)
@@ -100,7 +100,7 @@ describe('grade', () => {
     expect(g.status.every((s) => s === 'matched')).toBe(true)
   })
 
-  it('nota trocada da uma faltando e uma sobrando, resto intacto', () => {
+  it('a swapped note gives one missing and one extra, the rest intact', () => {
     const played = perfect()
     played[7] = { ...played[7], midi: played[7].midi + 1 }
     const g = grade(expected, played, config)
@@ -110,7 +110,7 @@ describe('grade', () => {
     expect(g.status.filter((s) => s === 'matched')).toHaveLength(14)
   })
 
-  it('uniforme mas 20% mais lento reprova pelo andamento, nao pela regularidade', () => {
+  it('even but 20% slower fails on tempo, not on evenness', () => {
     const beatMs = 60000 / BPM
     const played = expected.map((e) => ({
       midi: e.midi,
@@ -118,35 +118,35 @@ describe('grade', () => {
       onTime: ORIGIN + e.beat * beatMs * 1.2,
     }))
     const g = grade(expected, played, config)
-    expect(g.ioiCv).toBeCloseTo(0, 6) // regular, so que devagar
+    expect(g.ioiCv).toBeCloseTo(0, 6) // even, just slow
     expect(Math.round(g.effectiveBpm)).toBe(100)
     expect(g.passed).toBe(false)
-    expect(g.reasons.join(' ')).toMatch(/andamento/)
+    expect(g.reasons.join(' ')).toMatch(/tempo/)
   })
 
-  it('no andamento certo mas embolado reprova pela regularidade', () => {
-    // Mancando: uma nota gruda na anterior, a seguinte estica pra compensar.
+  it('at the right tempo but sloppy fails on evenness', () => {
+    // Limping: one note sticks to the previous, the next stretches to compensate.
     const g = grade(expected, perfect((i) => (i % 2 ? -40 : 0)), config)
     expect(g.ioiCv).toBeGreaterThan(config.maxIoiCv)
     expect(Math.abs(g.effectiveBpm - BPM) / BPM).toBeLessThan(config.maxBpmDeviation)
     expect(g.passed).toBe(false)
-    expect(g.reasons.join(' ')).toMatch(/irregular/)
+    expect(g.reasons.join(' ')).toMatch(/uneven/)
   })
 
-  it('aponta qual nota atrasa', () => {
-    // So a nota 9 chega 45ms tarde: o desvio tem que aparecer nela.
+  it('points out which note drags', () => {
+    // Only note 9 arrives 45ms late: the deviation has to show up on it.
     const g = grade(expected, perfect((i) => (i === 9 ? 45 : 0)), config)
     const dev = g.perGroupDevMs
     expect(dev[9]).toBeGreaterThan(30)
-    // E a seguinte aparece "adiantada", porque o buraco encurtou.
+    // And the next one shows up "early", because the gap shortened.
     expect(dev[10]).toBeLessThan(-30)
     expect(dev[3] ?? 0).toBeLessThan(15)
   })
 
-  it('nao exige ordem entre notas do mesmo grupo', () => {
+  it('does not demand an order between notes of the same group', () => {
     const unisono = expandPattern({ ...spec, hands: { kind: 'unison', octaveGap: 1 } }, 0, RANGE)
     const beatMs = 60000 / BPM
-    // A esquerda chega 8ms depois da direita, e o MIDI entrega fora de ordem.
+    // The left hand arrives 8ms after the right, and MIDI delivers them out of order.
     const played: PlayedNote[] = unisono.notes.map((e) => ({
       midi: e.midi,
       velocity: 80,
@@ -159,23 +159,23 @@ describe('grade', () => {
     expect(g.passed).toBe(true)
   })
 
-  it('nao finge medir regularidade quando a cadeia de ataques e curta demais', () => {
-    // Notas suficientes pra contar como tentativa, mas em dois pedacos soltos:
-    // so sobram 2 intervalos encadeados, e 2 nao da media nenhuma.
+  it('does not pretend to measure evenness when the onset chain is too short', () => {
+    // Enough notes to count as an attempt, but in two loose pieces: only 2 chained
+    // intervals are left, and 2 make no average at all.
     const played = perfect().filter((_, i) => [0, 1, 4, 5].includes(i))
     const g = grade(expected, played, config)
     expect(g.attempted).toBe(true)
-    expect(g.reasons.join(' ')).toMatch(/notas de menos/)
+    expect(g.reasons.join(' ')).toMatch(/too few notes/)
   })
 
-  it('mede desigualdade de ataque sem reprovar por isso', () => {
+  it('measures attack unevenness without failing you for it', () => {
     const played = perfect().map((n, i) => ({ ...n, velocity: i % 4 === 3 ? 40 : 100 }))
     const g = grade(expected, played, config)
     expect(g.velocityStdev).toBeGreaterThan(20)
-    expect(g.passed).toBe(true) // diagnostico, nao portao
+    expect(g.passed).toBe(true) // diagnosis, not a gate
   })
 
-  it('nao trava com nada tocado', () => {
+  it('does not choke with nothing played', () => {
     const g = grade(expected, [], config)
     expect(g.missed).toBe(15)
     expect(g.accuracy).toBe(0)
@@ -184,57 +184,57 @@ describe('grade', () => {
   })
 })
 
-describe('permissividade na entrada da nota', () => {
-  it('uma escorregada numa volta curta nao reprova', () => {
-    // 15 notas: 3% arredondado da 0 se voce truncar. O orcamento tem piso 1,
-    // senao o exercicio exige execucao perfeita e vira loteria.
+describe('permissiveness on note entry', () => {
+  it('one slip on a short rep does not fail you', () => {
+    // 15 notes: 3% rounded gives 0 if you truncate. The budget has a floor of 1,
+    // otherwise the exercise demands a perfect performance and becomes a lottery.
     const played = perfect()
     played[6] = { ...played[6], midi: played[6].midi + 1 }
     const g = grade(expected, played, { ...config, maxErrorRate: 0.03 })
     expect(g.missed + g.extra).toBe(2)
-    // Ainda reprova com duas (uma faltando + uma sobrando), mas so derrubar uma
-    // nota passa:
+    // It still fails with two (one missing + one extra), but merely dropping one
+    // note passes:
     const semUma = perfect().filter((_, i) => i !== 6)
     expect(grade(expected, semUma, { ...config, maxErrorRate: 0.03 }).passed).toBe(true)
   })
 
-  it('orcamento de erro nunca e zero, por menor que seja o desenho', () => {
-    // 15 notas a 3% arredondaria pra 0. O piso de 1 tem que aparecer no limite.
+  it('the error budget is never zero, however small the shape', () => {
+    // 15 notes at 3% would round to 0. The floor of 1 has to show up in the limit.
     const played = perfect()
     played[3] = { ...played[3], midi: played[3].midi + 1 }
     played[11] = { ...played[11], midi: played[11].midi + 1 }
     const g = grade(expected, played, { ...config, maxErrorRate: 0.03 })
     expect(g.attempted).toBe(true)
-    expect(g.reasons.join(' ')).toMatch(/limite 1/)
+    expect(g.reasons.join(' ')).toMatch(/limit 1/)
   })
 })
 
-describe('detecta oitava errada', () => {
-  it('tudo uma oitava abaixo vira explicacao, nao erro cru', () => {
+describe('detects the wrong octave', () => {
+  it('everything an octave down becomes an explanation, not raw error', () => {
     const played = perfect().map((n) => ({ ...n, midi: n.midi - 12 }))
     const g = grade(expected, played, config)
     expect(g.transposeHint).toBe(-12)
-    expect(g.reasons.join(' ')).toMatch(/1 oitava abaixo/)
+    expect(g.reasons.join(' ')).toMatch(/1 octave down/)
   })
 
-  it('tudo 2 semitons acima tambem', () => {
+  it('everything 2 semitones up as well', () => {
     const played = perfect().map((n) => ({ ...n, midi: n.midi + 2 }))
     expect(grade(expected, played, config).transposeHint).toBe(2)
   })
 
-  it('nao inventa transporte quando os erros sao avulsos', () => {
+  it('does not invent a transposition when the errors are scattered', () => {
     const played = perfect()
     played[3] = { ...played[3], midi: played[3].midi + 1 }
     played[9] = { ...played[9], midi: played[9].midi + 7 }
     expect(grade(expected, played, config).transposeHint).toBeNull()
   })
 
-  it('nao acusa transporte quando a quantidade de notas nao bate', () => {
+  it('does not report a transposition when the note count does not match', () => {
     const played = perfect().slice(0, 10).map((n) => ({ ...n, midi: n.midi - 12 }))
     expect(grade(expected, played, config).transposeHint).toBeNull()
   })
 
-  it('lista o que faltou e o que sobrou', () => {
+  it('lists what was missing and what was extra', () => {
     const played = perfect().filter((_, i) => i !== 4)
     const g = grade(expected, played, config)
     expect(g.missedNotes).toEqual([expected[4].midi])
@@ -242,47 +242,47 @@ describe('detecta oitava errada', () => {
   })
 })
 
-describe('volta sem execucao', () => {
-  it('nao tocar nada nao e falha de execucao', () => {
+describe('rep with nothing played', () => {
+  it('playing nothing is not a performance failure', () => {
     const g = grade(expected, [], config)
     expect(g.attempted).toBe(false)
-    expect(g.reasons).toEqual(['volta sem execucao'])
+    expect(g.reasons).toEqual(['rep with nothing played'])
     expect(g.passed).toBe(false)
   })
 
-  it('duas notas soltas ainda contam como nao tocou', () => {
+  it('two loose notes still count as nothing played', () => {
     expect(grade(expected, perfect().slice(0, 2), config).attempted).toBe(false)
   })
 
-  it('a partir de um quarto do desenho ja e tentativa de verdade', () => {
+  it('from a quarter of the shape on it is a real attempt', () => {
     const g = grade(expected, perfect().slice(0, 8), config)
     expect(g.attempted).toBe(true)
-    expect(g.reasons.join(' ')).toMatch(/erro/) // ai sim reprova pelo que faltou
+    expect(g.reasons.join(' ')).toMatch(/error/) // now it does fail for what was missing
   })
 
-  it('execucao completa e sempre tentativa', () => {
+  it('a complete performance is always an attempt', () => {
     expect(grade(expected, perfect(), config).attempted).toBe(true)
   })
 })
 
-describe('reencontrar a linha depois de um tropeco', () => {
-  it('pular seis notas no meio nao condena o resto da volta', () => {
-    // Toca 0-3, derrapa e pula 4-9, volta certinho em 10.
+describe('finding the line again after a stumble', () => {
+  it('skipping six notes in the middle does not condemn the rest of the rep', () => {
+    // Plays 0-3, slips and skips 4-9, comes back cleanly at 10.
     const played = perfect().filter((_, i) => i < 4 || i >= 10)
     const g = grade(expected, played, config)
-    // 6 puladas + 1 gasta percebendo que a linha se perdeu: o reencontro so
-    // abre depois de dois ataques sem casar, senao uma nota errada avulsa faria
-    // o cursor saltar sozinho.
+    // 6 skipped + 1 spent noticing the line was lost: the resync only opens after
+    // two unmatched onsets, otherwise one stray wrong note would send the cursor
+    // jumping on its own.
     expect(g.missed).toBe(7)
     expect(g.extra).toBe(1)
-    // O que importa: da nota 11 em diante volta a casar, em vez de tudo virar
-    // sobra ate o fim da volta.
+    // What matters: from note 11 on it matches again, instead of everything
+    // turning into extra until the end of the rep.
     expect(g.status.slice(11).every((s) => s === 'matched')).toBe(true)
   })
 
-  it('uma nota errada isolada nao faz o cursor saltar pra frente', () => {
+  it('one isolated wrong note does not send the cursor jumping ahead', () => {
     const played = perfect()
-    played[5] = { ...played[5], midi: 127 } // altura que nao existe no desenho
+    played[5] = { ...played[5], midi: 127 } // a pitch that does not exist in the shape
     const g = grade(expected, played, config)
     expect(g.missed).toBe(1)
     expect(g.extra).toBe(1)

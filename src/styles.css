@@ -122,7 +122,7 @@ input[type='range'] {
   letter-spacing: 0.06em;
 }
 
-/* ---- leitura do acorde ---- */
+/* ---- chord readout ---- */
 
 .readout,
 .prompt {
@@ -260,7 +260,7 @@ fieldset.qualities legend {
   background: var(--miss);
 }
 
-/* ---- pauta (VexFlow desenha em SVG preto) ---- */
+/* ---- staff (VexFlow draws black SVG) ---- */
 
 .staff {
   background: #f4f4f0;
@@ -269,7 +269,7 @@ fieldset.qualities legend {
   padding: 4px;
 }
 
-/* ---- teclado ---- */
+/* ---- keyboard ---- */
 
 .keyboard {
   width: 100%;
@@ -385,7 +385,7 @@ fieldset.qualities legend {
   font-size: 13px;
 }
 
-/* O canvas e o teclado tem a mesma largura util, entao a nota cai na tecla. */
+/* Canvas and keyboard share the same usable width, so a note lands on its key. */
 .roll-stack {
   display: grid;
   gap: 0;
@@ -610,7 +610,7 @@ button.primary {
   border-color: var(--bad);
 }
 
-/* O piano-roll ocupa a coluna toda; o aviso fica por cima dele. */
+/* The piano roll takes the whole column; the notice sits on top of it. */
 .roll-stack {
   position: relative;
 }
@@ -625,7 +625,7 @@ button.primary {
   text-align: center;
 }
 
-/* Mudou de andamento: grande no meio, impossivel de perder. */
+/* Tempo changed: large and centred, impossible to miss. */
 .roll-announce {
   top: 28%;
   font-size: clamp(40px, 9vw, 104px);
@@ -651,7 +651,7 @@ button.primary {
   }
 }
 
-/* Aviso previo: some depois, entao fica no topo sem cobrir as notas. */
+/* Advance warning: it disappears later, so it sits on top without covering the notes. */
 .roll-warn {
   top: 8px;
   font-size: clamp(14px, 2.2vw, 22px);

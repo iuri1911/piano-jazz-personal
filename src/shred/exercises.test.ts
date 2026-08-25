@@ -3,15 +3,15 @@ import { EXERCISES, EXERCISE_BY_ID, LEVEL_TOLERANCE } from './exercises'
 import { applyHandMode, expandPattern, sourceSteps } from './pattern'
 import { grade } from './grade'
 
-// Range do A-49: 49 teclas, C2..C6.
+// A-49 range: 49 keys, C2..C6.
 const RANGE = { low: 36, high: 84 }
 
-describe('tabela de exercicios', () => {
-  it('ids unicos', () => {
+describe('exercise table', () => {
+  it('unique ids', () => {
     expect(EXERCISE_BY_ID.size).toBe(EXERCISES.length)
   })
 
-  it('tempo alvo acima do inicial e ambos plausiveis', () => {
+  it('target tempo above the start and both plausible', () => {
     for (const e of EXERCISES) {
       expect(e.tempos.target, e.id).toBeGreaterThan(e.tempos.start)
       expect(e.tempos.start, e.id).toBeGreaterThanOrEqual(40)
@@ -19,7 +19,7 @@ describe('tabela de exercicios', () => {
     }
   })
 
-  it('todo exercicio tem foco e justificativa escritos', () => {
+  it('every exercise has a focus and a rationale written down', () => {
     for (const e of EXERCISES) {
       expect(e.focus.length, e.id).toBeGreaterThan(10)
       expect(e.note.length, e.id).toBeGreaterThan(60)
@@ -27,8 +27,8 @@ describe('tabela de exercicios', () => {
   })
 })
 
-describe('expansao da biblioteca', () => {
-  it('todo exercicio expande nos 12 tons dentro do teclado', () => {
+describe('expanding the library', () => {
+  it('every exercise expands in all 12 keys inside the keyboard', () => {
     for (const e of EXERCISES) {
       for (let pc = 0; pc < 12; pc++) {
         const { notes, groups, beats } = expandPattern(e.pattern, pc, RANGE)
@@ -43,7 +43,7 @@ describe('expansao da biblioteca', () => {
     }
   })
 
-  it('nenhum exercicio precisa cortar oitava no A-49', () => {
+  it('no exercise needs to trim an octave on the A-49', () => {
     for (const e of EXERCISES) {
       for (let pc = 0; pc < 12; pc++) {
         expect(expandPattern(e.pattern, pc, RANGE).warning, `${e.id} em pc ${pc}`).toBeUndefined()
@@ -51,7 +51,7 @@ describe('expansao da biblioteca', () => {
     }
   })
 
-  it('repeticao dura entre 1 e 16 compassos no tempo inicial', () => {
+  it('a rep lasts between 1 and 16 bars at the starting tempo', () => {
     for (const e of EXERCISES) {
       const { beats } = expandPattern(e.pattern, 0, RANGE)
       const bars = beats / e.beatsPerBar
@@ -60,7 +60,7 @@ describe('expansao da biblioteca', () => {
     }
   })
 
-  it('as notas sobem no tempo e nunca voltam', () => {
+  it('the notes move forward in time and never go back', () => {
     for (const e of EXERCISES) {
       const { notes } = expandPattern(e.pattern, 0, RANGE)
       for (let i = 1; i < notes.length; i++) {
@@ -70,8 +70,8 @@ describe('expansao da biblioteca', () => {
   })
 })
 
-describe('execucao perfeita passa em todos os exercicios', () => {
-  it('nenhum exercicio e impossivel de aprovar', () => {
+describe('a perfect performance passes on every exercise', () => {
+  it('no exercise is impossible to pass', () => {
     for (const e of EXERCISES) {
       const { notes } = expandPattern(e.pattern, 0, RANGE)
       const bpm = e.tempos.start
@@ -95,16 +95,16 @@ describe('execucao perfeita passa em todos os exercicios', () => {
   })
 })
 
-describe('detalhes musicais', () => {
-  it('a envolvente bebop cerca cada nota do arpejo de m7', () => {
+describe('musical details', () => {
+  it('the bebop enclosure surrounds every note of the m7 arpeggio', () => {
     const ex = EXERCISE_BY_ID.get('bebop-enclosure')!
     const { notes } = expandPattern(ex.pattern, 0, RANGE)
     const rel = notes.slice(0, 12).map((n) => n.midi - notes[2].midi)
-    // Alvos em 0 (C), 3 (Eb), 7 (G), 10 (Bb), cada um precedido de cima e baixo.
+    // Targets at 0 (C), 3 (Eb), 7 (G), 10 (Bb), each preceded from above and below.
     expect(rel).toEqual([2, -1, 0, 5, 2, 3, 9, 6, 7, 12, 9, 10])
   })
 
-  it('o arpejo diminuto repete a mesma forma a cada 3 semitons', () => {
+  it('the diminished arpeggio repeats the same shape every 3 semitones', () => {
     const ex = EXERCISE_BY_ID.get('dim7-arpeggio')!
     const shape = (pc: number) => {
       const m = expandPattern(ex.pattern, pc, RANGE).notes.map((n) => n.midi)
@@ -114,79 +114,79 @@ describe('detalhes musicais', () => {
     expect(shape(6)).toEqual(shape(0))
   })
 
-  it('oitavas mao-a-mao alternam as maos e separam por uma oitava', () => {
+  it('hand-to-hand octaves alternate the hands and separate them by an octave', () => {
     const ex = EXERCISE_BY_ID.get('hand-to-hand-octaves')!
     const { notes } = expandPattern(ex.pattern, 0, RANGE)
     expect(notes.slice(0, 4).map((n) => n.hand)).toEqual(['r', 'l', 'r', 'l'])
     expect(notes[0].midi - notes[1].midi).toBe(12)
   })
 
-  it('o ostinato da esquerda cai no tempo enquanto a direita corre', () => {
+  it('the left hand ostinato lands on the beat while the right runs', () => {
     const ex = EXERCISE_BY_ID.get('ostinato-lick')!
     const { notes } = expandPattern(ex.pattern, 0, RANGE)
     const lh = notes.filter((n) => n.hand === 'l')
     const rh = notes.filter((n) => n.hand === 'r')
-    expect(lh.every((n) => Number.isInteger(n.beat))).toBe(true) // esquerda no tempo
-    expect(rh.length).toBeGreaterThan(lh.length * 3) // direita bem mais densa
+    expect(lh.every((n) => Number.isInteger(n.beat))).toBe(true) // left hand on the beat
+    expect(rh.length).toBeGreaterThan(lh.length * 3) // right hand far denser
     expect(Math.max(...lh.map((n) => n.midi))).toBeLessThan(Math.min(...rh.map((n) => n.midi)))
   })
 
-  it('o grupo de 5 desloca o acento em relacao ao tempo', () => {
+  it('the group of 5 displaces the accent against the beat', () => {
     const ex = EXERCISE_BY_ID.get('group5-over-4')!
     const { notes } = expandPattern(ex.pattern, 0, RANGE)
-    // Inicio de cada grupo de 5, em tempos: 0, 1.25, 2.5, 3.75 — nunca dois
-    // seguidos na mesma posicao do tempo.
-    const inicios = [0, 5, 10, 15].map((i) => notes[i].beat % 1)
-    expect(new Set(inicios).size).toBe(4)
+    // Onset of each group of 5, in beats: 0, 1.25, 2.5, 3.75 — never two in a row
+    // at the same position within the beat.
+    const onsets = [0, 5, 10, 15].map((i) => notes[i].beat % 1)
+    expect(new Set(onsets).size).toBe(4)
   })
 })
 
-describe('a biblioteca inteira em cada arranjo de maos', () => {
-  const modos = ['as-is', 'rh', 'lh', 'both'] as const
+describe('the whole library in every hand arrangement', () => {
+  const modes = ['as-is', 'rh', 'lh', 'both'] as const
 
-  it('expande nos 12 tons sem sair do teclado', () => {
+  it('expands in all 12 keys without leaving the keyboard', () => {
     for (const e of EXERCISES) {
-      for (const modo of modos) {
-        const spec = applyHandMode(e.pattern, modo)
+      for (const mode of modes) {
+        const spec = applyHandMode(e.pattern, mode)
         for (let pc = 0; pc < 12; pc++) {
           const { notes } = expandPattern(spec, pc, RANGE)
-          expect(notes.length, `${e.id}/${modo} pc ${pc}`).toBeGreaterThan(4)
+          expect(notes.length, `${e.id}/${mode} pc ${pc}`).toBeGreaterThan(4)
           for (const n of notes) {
-            expect(n.midi, `${e.id}/${modo} pc ${pc}`).toBeGreaterThanOrEqual(RANGE.low)
-            expect(n.midi, `${e.id}/${modo} pc ${pc}`).toBeLessThanOrEqual(RANGE.high)
+            expect(n.midi, `${e.id}/${mode} pc ${pc}`).toBeGreaterThanOrEqual(RANGE.low)
+            expect(n.midi, `${e.id}/${mode} pc ${pc}`).toBeLessThanOrEqual(RANGE.high)
           }
         }
       }
     }
   })
 
-  it('mao separada sempre cabe, sem precisar cortar oitava', () => {
+  it('a single hand always fits, with no octave trimming', () => {
     for (const e of EXERCISES) {
-      for (const modo of ['rh', 'lh'] as const) {
+      for (const mode of ['rh', 'lh'] as const) {
         for (let pc = 0; pc < 12; pc++) {
-          const r = expandPattern(applyHandMode(e.pattern, modo), pc, RANGE)
-          expect(r.warning, `${e.id}/${modo} pc ${pc}`).toBeUndefined()
+          const r = expandPattern(applyHandMode(e.pattern, mode), pc, RANGE)
+          expect(r.warning, `${e.id}/${mode} pc ${pc}`).toBeUndefined()
         }
       }
     }
   })
 
-  it('avisa em vez de estourar quando o dobro nao cabe em 49 teclas', () => {
-    // 3 oitavas em oitavas dobradas pedem 48 semitons, que e o A-49 inteiro:
-    // so caberia em C. O ajustador tem que cortar e dizer por que.
+  it('warns instead of blowing up when doubling does not fit 49 keys', () => {
+    // 3 octaves doubled in octaves need 48 semitones, which is the whole A-49:
+    // it would only fit in C. The fitter has to trim and say why.
     const dim = EXERCISE_BY_ID.get('dim7-arpeggio')!
-    const emC = expandPattern(applyHandMode(dim.pattern, 'both'), 0, RANGE)
-    expect(emC.warning).toBeUndefined()
-    const emD = expandPattern(applyHandMode(dim.pattern, 'both'), 2, RANGE)
-    expect(emD.warning).toMatch(/oitava/)
-    expect(Math.max(...emD.notes.map((n) => n.midi))).toBeLessThanOrEqual(RANGE.high)
-    expect(Math.min(...emD.notes.map((n) => n.midi))).toBeGreaterThanOrEqual(RANGE.low)
+    const inC = expandPattern(applyHandMode(dim.pattern, 'both'), 0, RANGE)
+    expect(inC.warning).toBeUndefined()
+    const inD = expandPattern(applyHandMode(dim.pattern, 'both'), 2, RANGE)
+    expect(inD.warning).toMatch(/octave/)
+    expect(Math.max(...inD.notes.map((n) => n.midi))).toBeLessThanOrEqual(RANGE.high)
+    expect(Math.min(...inD.notes.map((n) => n.midi))).toBeGreaterThanOrEqual(RANGE.low)
   })
 
-  it('execucao perfeita passa em qualquer arranjo', () => {
+  it('a perfect performance passes in any arrangement', () => {
     for (const e of EXERCISES) {
-      for (const modo of modos) {
-        const { notes } = expandPattern(applyHandMode(e.pattern, modo), 0, RANGE)
+      for (const mode of modes) {
+        const { notes } = expandPattern(applyHandMode(e.pattern, mode), 0, RANGE)
         const bpm = e.tempos.start
         const beatMs = 60000 / bpm
         const played = notes.map((n) => ({
@@ -202,25 +202,25 @@ describe('a biblioteca inteira em cada arranjo de maos', () => {
           maxIoiCv: tol.maxIoiCv,
           maxBpmDeviation: 0.03,
         })
-        expect(g.reasons, `${e.id}/${modo}`).toEqual([])
+        expect(g.reasons, `${e.id}/${mode}`).toEqual([])
       }
     }
   })
 })
 
-describe('dedilhado', () => {
-  const SEM_DEDILHADO = new Set([
-    'hand-to-hand-octaves', // maos alternando: o dedo depende de onde a mao chega
+describe('fingering', () => {
+  const NO_FINGERING = new Set([
+    'hand-to-hand-octaves', // alternating hands: the finger depends on where the hand arrives
     'toccata',
     'ostinato-lick',
     'bebop-enclosure',
   ])
 
-  it('todo exercicio ou traz dedilhado ou diz na nota por que nao traz', () => {
+  it('every exercise either carries fingering or says in its note why not', () => {
     for (const e of EXERCISES) {
-      if (SEM_DEDILHADO.has(e.id)) {
+      if (NO_FINGERING.has(e.id)) {
         expect(e.pattern.fingering, e.id).toBeUndefined()
-        expect(e.note, e.id).toMatch(/Sem dedilhado na tela/)
+        expect(e.note, e.id).toMatch(/No fingering on screen/)
       } else {
         expect(e.pattern.fingering, e.id).toBeDefined()
         expect(e.pattern.fingering!.fingers.length, e.id).toBeGreaterThan(0)
@@ -228,46 +228,49 @@ describe('dedilhado', () => {
     }
   })
 
-  it('so usa dedo de 1 a 5', () => {
+  it('only uses fingers 1 to 5', () => {
     for (const e of EXERCISES) {
       const f = e.pattern.fingering
       if (!f) continue
       for (const d of [...f.fingers, ...(f.lh ?? [])]) {
-        expect(d, `${e.id}: dedo ${d}`).toBeGreaterThanOrEqual(1)
-        expect(d, `${e.id}: dedo ${d}`).toBeLessThanOrEqual(5)
+        expect(d, `${e.id}: finger ${d}`).toBeGreaterThanOrEqual(1)
+        expect(d, `${e.id}: finger ${d}`).toBeLessThanOrEqual(5)
       }
     }
   })
 
-  it('byDegree cobre todos os graus da fonte, senao um grau ficaria sem dedo', () => {
+  it('byDegree covers every degree of the source, or a degree would have no finger', () => {
     for (const e of EXERCISES) {
       const f = e.pattern.fingering
       if (!f || f.kind !== 'byDegree') continue
-      const graus = sourceSteps(e.pattern.source).length
-      expect(f.fingers.length, `${e.id}: ${f.fingers.length} dedos para ${graus} graus`).toBe(graus)
-      if (f.lh) expect(f.lh.length, e.id).toBe(graus)
+      const degrees = sourceSteps(e.pattern.source).length
+      expect(
+        f.fingers.length,
+        `${e.id}: ${f.fingers.length} fingers for ${degrees} degrees`,
+      ).toBe(degrees)
+      if (f.lh) expect(f.lh.length, e.id).toBe(degrees)
     }
   })
 
-  it('a nota do piano-roll recebe o dedo, e cada mao recebe o seu', () => {
-    const cinco = EXERCISE_BY_ID.get('five-finger')!
-    const { notes } = expandPattern(cinco.pattern, 0, RANGE)
-    const primeiro = notes.filter((n) => n.group === 0)
-    expect(primeiro.find((n) => n.hand === 'r')!.finger).toBe(1)
-    expect(primeiro.find((n) => n.hand === 'l')!.finger).toBe(5)
+  it('the piano roll note gets the finger, and each hand gets its own', () => {
+    const five = EXERCISE_BY_ID.get('five-finger')!
+    const { notes } = expandPattern(five.pattern, 0, RANGE)
+    const first = notes.filter((n) => n.group === 0)
+    expect(first.find((n) => n.hand === 'r')!.finger).toBe(1)
+    expect(first.find((n) => n.hand === 'l')!.finger).toBe(5)
   })
 
-  it('esquerda sem dedilhado proprio nao herda o numero da direita', () => {
-    const pent = EXERCISE_BY_ID.get('pentatonic-box')! // so tem lista de direita
+  it('a left hand with no fingering of its own does not inherit the right hand number', () => {
+    const pent = EXERCISE_BY_ID.get('pentatonic-box')! // only has a right hand list
     const { notes } = expandPattern(applyHandMode(pent.pattern, 'lh'), 0, RANGE)
     expect(notes.every((n) => n.hand === 'l')).toBe(true)
     expect(notes.every((n) => n.finger === undefined)).toBe(true)
   })
 
-  it('escala maior: direita e esquerda tem desenhos diferentes', () => {
-    const esc = EXERCISE_BY_ID.get('major-scale-2oct')!
-    const rh = expandPattern(applyHandMode(esc.pattern, 'rh'), 0, RANGE).notes
-    const lh = expandPattern(applyHandMode(esc.pattern, 'lh'), 0, RANGE).notes
+  it('major scale: right and left hand have different shapes', () => {
+    const scale = EXERCISE_BY_ID.get('major-scale-2oct')!
+    const rh = expandPattern(applyHandMode(scale.pattern, 'rh'), 0, RANGE).notes
+    const lh = expandPattern(applyHandMode(scale.pattern, 'lh'), 0, RANGE).notes
     expect(rh.slice(0, 7).map((n) => n.finger)).toEqual([1, 2, 3, 1, 2, 3, 4])
     expect(lh.slice(0, 7).map((n) => n.finger)).toEqual([1, 4, 3, 2, 1, 3, 2])
   })

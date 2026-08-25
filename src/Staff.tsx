@@ -13,7 +13,7 @@ type Props = {
   label?: string
 }
 
-/** Grande pauta. A divisao entre claves e por altura real (>= C4 vai pra sol). */
+/** Grand staff. The split between clefs is by actual pitch (>= C4 goes to treble). */
 export function Staff({ notes, spelling = 'flat', color = '#111', label }: Props) {
   const hostRef = useRef<HTMLDivElement>(null)
 

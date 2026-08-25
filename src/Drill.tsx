@@ -5,13 +5,13 @@ import { chordLabel, compareToTarget, handNotes, pitchClassName, type Spelling }
 import { QUALITY_LABEL, VOICINGS, type Quality, voicingToMidi } from './voicings'
 import { loadStats, recordAttempt, summaryFor, clearStats, type Stats } from './stats'
 
-// Ciclo de quartas, o jeito padrao de transpor exercicio de jazz.
+// Cycle of fourths, the standard way to transpose a jazz exercise.
 const FOURTHS = [0, 5, 10, 3, 8, 1, 6, 11, 4, 9, 2, 7]
 const CHROMATIC = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
 
 type Order = 'fourths' | 'chromatic' | 'random'
 
-// Fundamental sempre em C3..B3 — assim o alvo desenhado na pauta e sem ambiguidade.
+// Root always in C3..B3 — that way the target drawn on the staff is unambiguous.
 const ROOT_OCTAVE_BASE = 48
 
 type Target = { rootPc: number; quality: Quality }
@@ -50,7 +50,7 @@ export function Drill({ settled, spelling }: Props) {
     [order, activeQualities.join(',')],
   )
 
-  // Novo voicing ou nova ordem reinicia a sequencia.
+  // A new voicing or a new order restarts the sequence.
   useEffect(() => {
     indexRef.current = 0
     nextTarget(0)
@@ -64,8 +64,8 @@ export function Drill({ settled, spelling }: Props) {
   const targetMidi = voicingToMidi(voicing, target.quality, ROOT_OCTAVE_BASE + target.rootPc)
   const comparison = compareToTarget(settled, targetMidi)
 
-  // Avalia a cada acorde estavel novo. `settled` e um array novo a cada leitura,
-  // entao repetir o mesmo acorde dispara de novo — que e o desejado.
+  // Evaluates on every new settled chord. `settled` is a fresh array on each
+  // reading, so playing the same chord again fires again — which is what we want.
   useEffect(() => {
     if (settled.length === 0 || lockedRef.current) return
     const c = compareToTarget(settled, targetMidi)
@@ -78,7 +78,7 @@ export function Drill({ settled, spelling }: Props) {
       const t = setTimeout(advance, 700)
       return () => clearTimeout(t)
     }
-    // So conta erro quando ja tem notas suficientes; acorde em construcao nao penaliza.
+    // Only counts a miss once there are enough notes; a chord being built is not penalized.
     if (settled.length >= targetMidi.length) {
       setResult('wrong')
       setStats(
@@ -105,7 +105,7 @@ export function Drill({ settled, spelling }: Props) {
         </label>
 
         <fieldset className="qualities">
-          <legend>Qualidade</legend>
+          <legend>Quality</legend>
           {voicing.qualities.map((q) => (
             <label key={q}>
               <input
@@ -123,17 +123,17 @@ export function Drill({ settled, spelling }: Props) {
         </fieldset>
 
         <label>
-          Ordem
+          Order
           <select value={order} onChange={(e) => setOrder(e.target.value as Order)}>
-            <option value="fourths">Ciclo de quartas</option>
-            <option value="chromatic">Cromatica</option>
-            <option value="random">Aleatoria</option>
+            <option value="fourths">Cycle of fourths</option>
+            <option value="chromatic">Chromatic</option>
+            <option value="random">Random</option>
           </select>
         </label>
 
-        <button onClick={advance}>Pular</button>
+        <button onClick={advance}>Skip</button>
         <button onClick={() => setRevealed((r) => !r)}>
-          {revealed ? 'Esconder' : 'Mostrar'} resposta
+          {revealed ? 'Hide' : 'Show'} answer
         </button>
       </div>
 
@@ -141,22 +141,22 @@ export function Drill({ settled, spelling }: Props) {
         <div className="chord-symbol">{chordLabel(target.rootPc, target.quality, spelling)}</div>
         <div className="voicing-name">{voicing.label}</div>
         <div className="verdict">
-          {result === 'correct' ? 'certo' : result === 'wrong' ? 'errado' : '...'}
+          {result === 'correct' ? 'right' : result === 'wrong' ? 'wrong' : '...'}
         </div>
       </div>
 
       <div className="side-by-side">
         <div>
-          <h3>Alvo</h3>
+          <h3>Target</h3>
           <Staff notes={targetMidi} spelling={spelling} />
           {revealed && (
             <p className="hand-notes">
-              ME: {hands.lh.join(' ')} &nbsp;|&nbsp; MD: {hands.rh.join(' ')}
+              LH: {hands.lh.join(' ')} &nbsp;|&nbsp; RH: {hands.rh.join(' ')}
             </p>
           )}
         </div>
         <div>
-          <h3>Tocado</h3>
+          <h3>Played</h3>
           <Staff notes={settled} spelling={spelling} color={result === 'wrong' ? '#c0392b' : '#111'} />
         </div>
       </div>
@@ -164,26 +164,26 @@ export function Drill({ settled, spelling }: Props) {
       <Keyboard marks={marksFromComparison(comparison)} />
 
       <div className="legend">
-        <span className="swatch correct" /> certa
-        <span className="swatch extra" /> sobrando
-        <span className="swatch missing" /> faltando
+        <span className="swatch correct" /> right
+        <span className="swatch extra" /> extra
+        <span className="swatch missing" /> missing
       </div>
 
       <div className="stats">
         {voicing.label}: {summary.correct}/{summary.attempts} ({Math.round(summary.accuracy * 100)}%)
-        {summary.avgMs > 0 && <> · {(summary.avgMs / 1000).toFixed(1)}s por acorde</>}
+        {summary.avgMs > 0 && <> · {(summary.avgMs / 1000).toFixed(1)}s per chord</>}
         <button
           onClick={() => {
             clearStats()
             setStats({})
           }}
         >
-          zerar
+          reset
         </button>
       </div>
 
       <details className="per-key">
-        <summary>Por tom</summary>
+        <summary>By key</summary>
         <ul>
           {CHROMATIC.map((pc) => {
             const e = stats[voicing.id]?.[pc]

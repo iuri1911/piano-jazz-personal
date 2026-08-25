@@ -45,13 +45,13 @@ import {
 import { QWERTY_HELP, useComputerKeyboard } from './qwerty'
 
 /**
- * Folga em cada ponta da repeticao, em fracao de tempo. Um quarto de tempo e
- * generoso o bastante pra nota de fronteira e curto o bastante pra nao invadir
- * a volta seguinte.
+ * Grace at each end of the rep, as a fraction of a beat. A quarter of a beat is
+ * generous enough for a boundary note and short enough not to spill into the
+ * next rep.
  */
 const GRACE_BEATS = 0.25
 const graceMs = (bpm: number) => (60000 / bpm) * GRACE_BEATS
-/** Quantas repeticoes o modo accel leva pra ir do inicial ao alvo. */
+/** How many reps accel mode takes to go from the start tempo to the target. */
 const ACCEL_REPS = 8
 
 type Phase = 'idle' | 'countin' | 'playing' | 'resting' | 'demo'
@@ -60,15 +60,15 @@ const ORDERS = ['fourths', 'chromatic', 'random'] as const
 const MODES = ['ladder', 'burst', 'accel', 'free'] as const
 const HAND_MODES = ['as-is', 'rh', 'lh', 'both'] as const
 
-/** Valor salvo que nao existe mais (versao antiga, storage editado) cai no padrao. */
+/** A saved value that no longer exists (old version, edited storage) falls back to the default. */
 function pick<T extends string>(v: unknown, allowed: readonly T[], fallback: T): T {
   return typeof v === 'string' && (allowed as readonly string[]).includes(v) ? (v as T) : fallback
 }
 
-/** Quantas voltas ja contam pro proximo degrau de andamento. */
+/** How many reps already count toward the next tempo step. */
 function Dots({ on, total }: { on: number; total: number }) {
   return (
-    <span className="dots" aria-label={`${on} de ${total}`}>
+    <span className="dots" aria-label={`${on} of ${total}`}>
       {Array.from({ length: total }, (_, i) => (
         <span key={i} className={i < on ? 'dot on' : 'dot'} />
       ))}
@@ -76,19 +76,19 @@ function Dots({ on, total }: { on: number; total: number }) {
   )
 }
 
-/** Lista curta de alturas, sem despejar 60 nomes na barra. */
-function nomes(midi: number[], spelling: Spelling): string {
-  const unicas = [...new Set(midi)]
-  const mostra = unicas.slice(0, 6).map((n) => midiToName(n, spelling)).join(' ')
-  return unicas.length > 6 ? `${mostra} +${unicas.length - 6}` : mostra
+/** Short list of pitches, without dumping 60 names into the bar. */
+function noteNames(midi: number[], spelling: Spelling): string {
+  const unique = [...new Set(midi)]
+  const shown = unique.slice(0, 6).map((n) => midiToName(n, spelling)).join(' ')
+  return unique.length > 6 ? `${shown} +${unique.length - 6}` : shown
 }
 
 type Props = { spelling: Spelling }
 
 export function Shred({ spelling }: Props) {
-  // Tudo que voce escolhe fica salvo: recarregar a pagina nao pode custar
-  // remontar a bancada. O storage guarda cru e a validacao acontece aqui, entao
-  // um exercicio renomeado vira o padrao em vez de quebrar.
+  // Everything you pick is saved: reloading the page must not cost you rebuilding
+  // the whole setup. Storage keeps it raw and validation happens here, so a
+  // renamed exercise falls back to the default instead of breaking.
   const [range, setRange] = useState(loadSettings)
   const persist = useCallback((patch: Partial<typeof DEFAULT_SETTINGS>) => {
     setRange((prev) => saveSettings({ ...prev, ...patch }))
@@ -107,7 +107,7 @@ export function Shred({ spelling }: Props) {
   const [repLog, setRepLog] = useState<{ bpm: number; passed: boolean }[]>([])
   const [stats, setStats] = useState<ShredStats>(loadShredStats)
   const [audioError, setAudioError] = useState<string | null>(null)
-  /** Aviso grande em cima do piano-roll quando o andamento muda. */
+  /** Big notice over the piano roll when the tempo changes. */
   const [announce, setAnnounce] = useState<{ kind: 'up' | 'down'; text: string } | null>(null)
 
   const exercise = EXERCISE_BY_ID.get(exerciseId) ?? EXERCISES[0]
@@ -120,17 +120,17 @@ export function Shred({ spelling }: Props) {
   const repBeats = repBars * exercise.beatsPerBar
   const cycleBeats = mode === 'burst' ? repBeats * 2 : repBeats
 
-  // --- refs de execucao ------------------------------------------------------
-  // A avaliacao roda dentro de timers e nao pode ler estado velho: tudo que ela
-  // precisa passa por aqui.
+  // --- run-time refs ---------------------------------------------------------
+  // Grading runs inside timers and must not read stale state: everything it needs
+  // goes through here.
   const transportRef = useRef<Transport | null>(null)
   const playedRef = useRef<PlayedNote[]>([])
   const rollRef = useRef<PlayedMark[]>([])
-  /** Instante real de cada tempo, do proprio transporte. Vale pros 4 modos. */
+  /** Real instant of each beat, from the transport itself. Holds for all 4 modes. */
   const beatsRef = useRef<{ index: number; perf: number }[]>([])
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([])
   const sessionRef = useRef({ reps: 0, passed: 0, bestBpm: 0 })
-  /** Demonstracao: o transporte roda, o piano toca, nada e avaliado. */
+  /** Demo: the transport runs, the piano plays, nothing is graded. */
   const demoRef = useRef(false)
   const orderIndexRef = useRef(0)
   const rangeRef = useRef(range)
@@ -138,7 +138,7 @@ export function Shred({ spelling }: Props) {
   const bpmRef = useRef(ramp.bpm)
   bpmRef.current = ramp.bpm
 
-  const strictness = (range.strictness ?? 'padrao') as Strictness
+  const strictness = (range.strictness ?? 'standard') as Strictness
   const tolerance = toleranceFor(exercise.level, strictness)
   const rampConfig = useMemo(
     () => ({ ...DEFAULT_RAMP, repsToAdvance: range.advanceReps }),
@@ -149,7 +149,7 @@ export function Shred({ spelling }: Props) {
   const rampRef = useRef(ramp)
   rampRef.current = ramp
 
-  // 0.28 e o teto: acima disso a referencia abafa o teclado de verdade.
+  // 0.28 is the ceiling: above that the guide drowns out the real keyboard.
   const guideGain = range.guideVolume * 0.28
 
   const cfgRef = useRef({
@@ -169,8 +169,8 @@ export function Shred({ spelling }: Props) {
   expectedBeatsRef.current = expectedBeats
 
   const later = (fn: () => void, delayMs: number) => {
-    // O timer se remove da lista ao disparar: numa sessao longa sao milhares, e
-    // a lista so existe pra poder cancelar o que ainda nao aconteceu.
+    // The timer removes itself from the list when it fires: a long session has
+    // thousands, and the list only exists to cancel what has not happened yet.
     const id: ReturnType<typeof setTimeout> = setTimeout(() => {
       timersRef.current = timersRef.current.filter((t) => t !== id)
       fn()
@@ -178,7 +178,7 @@ export function Shred({ spelling }: Props) {
     timersRef.current.push(id)
   }
 
-  /** Instante do tempo `beat`, interpolando entre os tempos ja agendados. */
+  /** Instant of beat `beat`, interpolating between the beats already scheduled. */
   const perfAtBeat = useCallback((beat: number): number => {
     const list = beatsRef.current
     const i = Math.floor(beat)
@@ -189,7 +189,7 @@ export function Shred({ spelling }: Props) {
     return b2 ? a.perf + (beat - i) * (b2.perf - a.perf) : a.perf
   }, [])
 
-  /** O inverso: em que tempo cai um instante. Usado pra desenhar o que foi tocado. */
+  /** The inverse: which beat an instant falls on. Used to draw what was played. */
   const beatAtPerf = useCallback((ms: number): number => {
     const list = beatsRef.current
     if (list.length < 2) return Number.NaN
@@ -202,7 +202,7 @@ export function Shred({ spelling }: Props) {
     return list[0].index
   }, [])
 
-  // --- avaliacao de uma repeticao -------------------------------------------
+  // --- grading one rep -------------------------------------------------------
   const evaluateRep = useCallback(
     (r: number) => {
       const c = cfgRef.current
@@ -212,9 +212,9 @@ export function Shred({ spelling }: Props) {
 
       const repEnd = perfAtBeat(startBeat + c.repBeats)
 
-      // Tempo esperado sai dos instantes que o transporte realmente agendou, em
-      // vez de recalcular a grade — assim accel nao vira caso especial e nao tem
-      // como as duas contas divergirem.
+      // Expected time comes from the instants the transport actually scheduled,
+      // instead of recomputing the grid — that way accel is no special case and the
+      // two calculations cannot diverge.
       const localMsAt = (beat: number) => {
         const t = perfAtBeat(startBeat + beat)
         return Number.isFinite(t) ? t - repStart : beat * (60000 / (transportRef.current?.currentBpm ?? 120))
@@ -222,12 +222,12 @@ export function Shred({ spelling }: Props) {
       const oneBeat = localMsAt(1)
       const bpm = oneBeat > 0 ? 60000 / oneBeat : (transportRef.current?.currentBpm ?? 120)
 
-      // Folga proporcional ao andamento. Fixa em ms era o defeito: a 80 BPM um
-      // tempo tem 750ms, e 120ms de folga jogava fora nota que entrou no lugar.
+      // Grace proportional to the tempo. A fixed value in ms was the flaw: at
+      // 80 BPM a beat is 750ms, and 120ms of grace threw away a note that landed right.
       const grace = graceMs(bpm)
-      const fim = Number.isFinite(repEnd) ? repEnd + grace : Number.POSITIVE_INFINITY
+      const end = Number.isFinite(repEnd) ? repEnd + grace : Number.POSITIVE_INFINITY
       const notes = playedRef.current
-        .filter((n) => n.onTime >= repStart - grace && n.onTime < fim)
+        .filter((n) => n.onTime >= repStart - grace && n.onTime < end)
         .sort((a, b) => a.onTime - b.onTime)
 
       const tol = toleranceFor(c.exercise.level, c.strictness)
@@ -243,9 +243,9 @@ export function Shred({ spelling }: Props) {
 
       setLastGrade(g)
 
-      // Volta em que a pessoa nao tocou nao conta como falha: nao entra na
-      // sessao, nao vira estatistica e, principalmente, nao desce o andamento.
-      // Mexer no teclado por meio minuto derrubava o BPM ate o piso em silencio.
+      // A rep with nothing played does not count as a failure: it does not enter the
+      // session, does not become a statistic and, above all, does not lower the tempo.
+      // Fiddling with the keyboard for half a minute used to drop the BPM to the floor silently.
       if (!g.attempted) return
 
       setRepLog((prev) => [...prev.slice(-11), { bpm: Math.round(bpm), passed: g.passed }])
@@ -256,7 +256,7 @@ export function Shred({ spelling }: Props) {
       }
       setStats(recordRep(c.exercise.id, c.rootPc, Math.round(bpm), g.passed, g.perGroupDevMs))
 
-      // No accel o andamento e ditado pela curva, nao pelo resultado.
+      // In accel the tempo is dictated by the curve, not by the result.
       if (c.mode === 'ladder' || c.mode === 'burst') {
         const next = nextRamp(rampRef.current, g.passed, rampConfigRef.current)
         rampRef.current = next.state
@@ -265,8 +265,8 @@ export function Shred({ spelling }: Props) {
         if (next.event === 'hold') {
           transportRef.current?.setBpm(next.state.bpm)
         } else {
-          // Mudou de andamento: anuncia e da um compasso de contagem no tempo
-          // novo, em vez de trocar a velocidade embaixo da sua mao sem aviso.
+          // The tempo changed: announce it and give a count-in bar at the new tempo,
+          // instead of swapping the speed under your hand with no warning.
           setAnnounce({
             kind: next.event,
             text: `${next.event === 'up' ? '↑' : '↓'} ${next.state.bpm} BPM`,
@@ -275,38 +275,38 @@ export function Shred({ spelling }: Props) {
         }
       }
 
-      // Tudo dentro da janela ja foi resolvido — casou ou virou sobra. Guardar
-      // parte dela pra proxima volta era o que fazia a mesma nota contar duas
-      // vezes: certa aqui, sobrando la.
-      playedRef.current = playedRef.current.filter((n) => n.onTime >= fim)
+      // Everything inside the window has been resolved — matched or counted extra.
+      // Keeping part of it for the next rep was what made the same note count twice:
+      // right here, extra there.
+      playedRef.current = playedRef.current.filter((n) => n.onTime >= end)
     },
     [perfAtBeat],
   )
 
   /**
-   * Agenda as notas do exercicio que caem no proximo tempo.
+   * Schedules the exercise notes that land on the next beat.
    *
-   * O mesmo caminho serve pra demonstracao e pra referencia continua: a unica
-   * diferenca e que a demonstracao toca uma volta e para, e a referencia roda
-   * junto com voce. Agendar so um tempo por vez evita criar 300 osciladores
-   * quarenta segundos antes de precisar deles.
+   * The same path serves the demo and the continuous guide: the only difference is
+   * that the demo plays one rep and stops, while the guide runs along with you.
+   * Scheduling only one beat at a time avoids creating 300 oscillators forty
+   * seconds before they are needed.
    */
-  const agendarPiano = useCallback((b: Beat, gain: number) => {
+  const schedulePiano = useCallback((b: Beat, gain: number) => {
     const t = transportRef.current
     if (!t || b.index < 0 || gain <= 0) return
     const c = cfgRef.current
-    const porTempo = 60 / (t.currentBpm || 120)
-    const dur = Math.max(0.08, Math.min(0.6, porTempo / c.exercise.pattern.subdivision) * 0.9)
-    // Onde estamos DENTRO da volta: o desenho se repete a cada ciclo.
+    const perBeat = 60 / (t.currentBpm || 120)
+    const dur = Math.max(0.08, Math.min(0.6, perBeat / c.exercise.pattern.subdivision) * 0.9)
+    // Where we are INSIDE the rep: the shape repeats every cycle.
     const local = ((b.index % c.cycleBeats) + c.cycleBeats) % c.cycleBeats
     for (const n of c.expansion.notes) {
       if (n.beat >= local && n.beat < local + 1) {
-        t.note(n.midi, b.audioTime + (n.beat - local) * porTempo, dur, gain)
+        t.note(n.midi, b.audioTime + (n.beat - local) * perBeat, dur, gain)
       }
     }
   }, [])
 
-  // --- transporte ------------------------------------------------------------
+  // --- transport -------------------------------------------------------------
   const handleBeat = useCallback(
     (b: Beat) => {
       beatsRef.current.push({ index: b.index, perf: b.perfTime })
@@ -315,7 +315,7 @@ export function Shred({ spelling }: Props) {
       const c = cfgRef.current
 
       if (demoRef.current) {
-        agendarPiano(b, c.guideGain)
+        schedulePiano(b, c.guideGain)
         if (b.index >= c.repBeats) {
           later(() => {
             stopRef.current()
@@ -331,8 +331,8 @@ export function Shred({ spelling }: Props) {
         )
       }
 
-      // Referencia continua: o piano toca o exercicio junto, volta apos volta.
-      if (c.guide) agendarPiano(b, c.guideGain)
+      // Continuous guide: the piano plays the exercise along, rep after rep.
+      if (c.guide) schedulePiano(b, c.guideGain)
 
       const delay = b.perfTime - performance.now()
 
@@ -343,31 +343,31 @@ export function Shred({ spelling }: Props) {
         }, delay)
       }
 
-      // Fim de uma janela tocada: avalia com uma folga pra ultima nota chegar.
+      // End of a played window: grade after a grace period so the last note arrives.
       if (b.index >= c.repBeats && (b.index - c.repBeats) % c.cycleBeats === 0) {
         const r = (b.index - c.repBeats) / c.cycleBeats
-        // Avalia depois da folga, senao a ultima nota ainda nao chegou.
-        const espera = graceMs(transportRef.current?.currentBpm ?? 120) + 30
+        // Grade after the grace period, otherwise the last note has not arrived yet.
+        const wait = graceMs(transportRef.current?.currentBpm ?? 120) + 30
         later(() => {
           evaluateRep(r)
           if (c.mode === 'burst') setPhase('resting')
-        }, delay + espera)
+        }, delay + wait)
       }
 
-      // Inicio de uma janela tocada (rajada: sai do descanso).
+      // Start of a played window (burst: coming out of the rest).
       if (b.index > 0 && b.index % c.cycleBeats === 0) {
         later(() => setPhase('playing'), delay)
       }
     },
-    [evaluateRep, agendarPiano],
+    [evaluateRep, schedulePiano],
   )
 
   const restartAtTempoRef = useRef<(bpm: number) => Promise<void>>(async () => {})
 
   /**
-   * Reinicia o transporte num andamento novo, com um compasso de contagem.
-   * Diferente de start(): mantem sessao, historico e recordes — so a linha do
-   * tempo recomeca, porque a grade de tempos mudou.
+   * Restarts the transport at a new tempo, with one count-in bar.
+   * Unlike start(): it keeps the session, the history and the records — only the
+   * timeline restarts, because the beat grid changed.
    */
   const restartAtTempo = useCallback(async (bpm: number) => {
     const t = transportRef.current
@@ -387,7 +387,7 @@ export function Shred({ spelling }: Props) {
       })
     } catch (e) {
       setPhase('idle')
-      setAudioError(`Nao consegui iniciar o audio: ${(e as Error).message}`)
+      setAudioError(`Could not start audio: ${(e as Error).message}`)
     }
   }, [])
   restartAtTempoRef.current = restartAtTempo
@@ -410,8 +410,8 @@ export function Shred({ spelling }: Props) {
 
   stopRef.current = stop
 
-  /** Ouvir o exercicio antes de tentar. Mesmo andamento que voce escolheu. */
-  const ouvir = useCallback(async () => {
+  /** Listen to the exercise before trying it. The same tempo you picked. */
+  const listen = useCallback(async () => {
     setAudioError(null)
     const t = (transportRef.current ??= new Transport())
     t.onBeat = handleBeat
@@ -425,7 +425,7 @@ export function Shred({ spelling }: Props) {
     } catch (e) {
       demoRef.current = false
       setPhase('idle')
-      setAudioError(`Nao consegui iniciar o audio: ${(e as Error).message}`)
+      setAudioError(`Could not start audio: ${(e as Error).message}`)
     }
   }, [handleBeat, exercise, ramp.bpm])
 
@@ -450,26 +450,26 @@ export function Shred({ spelling }: Props) {
       await t.start({ bpm, beatsPerBar: exercise.beatsPerBar, countInBars: 1 })
     } catch (e) {
       setPhase('idle')
-      setAudioError(`Nao consegui iniciar o audio: ${(e as Error).message}`)
+      setAudioError(`Could not start audio: ${(e as Error).message}`)
     }
   }, [handleBeat, mode, exercise, ramp.bpm])
 
-  // Sair da aba ou trocar de exercicio no meio nao pode deixar o clique tocando.
+  // Leaving the tab or switching exercise mid-run must not leave the click running.
   useEffect(() => () => stop(), [stop])
   useEffect(() => {
     if (phase !== 'idle') stop()
     setRamp(newRamp(exercise.tempos.start))
     setLastGrade(null)
     setRepLog([])
-    // Trocar de exercicio zera o ramp: BPM de um nao vale pro outro.
+    // Switching exercise resets the ramp: the BPM of one does not apply to another.
   }, [exerciseId])
 
-  // --- entrada de notas ------------------------------------------------------
+  // --- note input ------------------------------------------------------------
   const onNote = useCallback(
     (e: MidiEvent) => {
       if (e.kind === 'off') {
         setHeld((prev) => prev.filter((n) => n !== e.note))
-        // Fecha a ultima nota aberta dessa altura, pra medir ligado/destacado.
+        // Closes the last open note at this pitch, to measure legato/detached.
         for (let i = playedRef.current.length - 1; i >= 0; i--) {
           const p = playedRef.current[i]
           if (p.midi === e.note && p.offTime === undefined) {
@@ -486,12 +486,12 @@ export function Shred({ spelling }: Props) {
         d ? { low: Math.min(d.low, e.note), high: Math.max(d.high, e.note) } : d,
       )
 
-      // Desconta o atraso da cadeia de entrada antes de qualquer conta.
+      // Subtract the input chain latency before any arithmetic.
       const onTime = e.time - rangeRef.current.latencyMs
       playedRef.current.push({ midi: e.note, velocity: e.velocity, onTime })
       if (playedRef.current.length > 2000) playedRef.current.splice(0, 1000)
 
-      // Marca pro piano-roll: posicao no tempo e quanto saiu da grade.
+      // Mark for the piano roll: position in time and how far off the grid it was.
       const beat = beatAtPerf(onTime)
       if (Number.isFinite(beat)) {
         const c = cfgRef.current
@@ -512,22 +512,22 @@ export function Shred({ spelling }: Props) {
   useComputerKeyboard(qwerty, onNote, Math.max(range.low, 48))
 
   /**
-   * Andamento na mao. Zera as sequencias: se voce acabou de mudar o tempo, as
-   * limpas anteriores nao valem como progresso pra promover deste ponto.
+   * Tempo set by hand. Resets the streaks: if you have just changed the tempo, the
+   * previous clean reps do not count as progress toward promoting from this point.
    */
   const setTempo = useCallback((bpm: number) => {
-    // Campo vazio ou "-" no meio da digitacao vira NaN, e NaN atravessa
-    // Math.min/max sem reclamar ate chegar no value do input.
+    // An empty field or a "-" mid-typing becomes NaN, and NaN goes through
+    // Math.min/max without complaint all the way to the input value.
     if (!Number.isFinite(bpm)) return
-    const alvo = Math.max(DEFAULT_RAMP.minBpm, Math.min(DEFAULT_RAMP.maxBpm, Math.round(bpm)))
-    // Atualiza o ref na hora: dois cliques no mesmo quadro leriam o mesmo
-    // ramp.bpm do render e o segundo nao andaria.
-    bpmRef.current = alvo
-    setRamp((prev) => ({ ...prev, bpm: alvo, cleanStreak: 0, failStreak: 0 }))
-    transportRef.current?.setBpm(alvo)
+    const target = Math.max(DEFAULT_RAMP.minBpm, Math.min(DEFAULT_RAMP.maxBpm, Math.round(bpm)))
+    // Updates the ref immediately: two clicks in the same frame would read the same
+    // ramp.bpm from the render and the second would not move.
+    bpmRef.current = target
+    setRamp((prev) => ({ ...prev, bpm: target, cleanStreak: 0, failStreak: 0 }))
+    transportRef.current?.setBpm(target)
   }, [])
 
-  // --- derivados pra tela ----------------------------------------------------
+  // --- derived for the view --------------------------------------------------
   const getPosition = useCallback(() => transportRef.current?.position() ?? Number.NaN, [])
   const getPlayed = useCallback(() => rollRef.current, [])
 
@@ -544,8 +544,8 @@ export function Shred({ spelling }: Props) {
   const worst = worstGroups(diagnosis)
   const bpmNow = phase === 'idle' ? ramp.bpm : Math.round(transportRef.current?.currentBpm ?? ramp.bpm)
   const targets = rampTargets(ramp, rampConfig)
-  // Ultima limpa que falta: e a volta em que vale avisar antes, nao depois.
-  const prestesASubir =
+  // The last clean rep needed: this is the rep worth warning about before, not after.
+  const aboutToClimb =
     (mode === 'ladder' || mode === 'burst') &&
     (phase === 'playing' || phase === 'countin') &&
     ramp.cleanStreak === rampConfig.repsToAdvance - 1
@@ -554,7 +554,7 @@ export function Shred({ spelling }: Props) {
     <div className="shred">
       <div className="controls">
         <label>
-          Exercicio
+          Exercise
           <select value={exerciseId} onChange={(e) => persist({ exerciseId: e.target.value })}>
             {([1, 2, 3, 4, 5] as Level[]).map((lvl) => (
               <optgroup key={lvl} label={LEVEL_LABEL[lvl]}>
@@ -569,7 +569,7 @@ export function Shred({ spelling }: Props) {
         </label>
 
         <label>
-          Tom
+          Key
           <select value={rootPc} onChange={(e) => persist({ rootPc: Number(e.target.value) })}>
             {Array.from({ length: 12 }, (_, pc) => (
               <option key={pc} value={pc}>
@@ -580,7 +580,7 @@ export function Shred({ spelling }: Props) {
         </label>
 
         <label>
-          Maos
+          Hands
           <select value={handMode} onChange={(e) => persist({ handMode: e.target.value })}>
             {(Object.keys(HAND_MODE_LABEL) as HandMode[]).map((h) => (
               <option key={h} value={h}>
@@ -591,11 +591,11 @@ export function Shred({ spelling }: Props) {
         </label>
 
         <label>
-          Ordem
+          Order
           <select value={order} onChange={(e) => persist({ order: e.target.value })}>
-            <option value="fourths">Quartas</option>
-            <option value="chromatic">Cromatica</option>
-            <option value="random">Aleatoria</option>
+            <option value="fourths">Fourths</option>
+            <option value="chromatic">Chromatic</option>
+            <option value="random">Random</option>
           </select>
         </label>
 
@@ -605,11 +605,11 @@ export function Shred({ spelling }: Props) {
             persist({ rootPc: rootAt(order, orderIndexRef.current) })
           }}
         >
-          Proximo tom
+          Next key
         </button>
 
         <label>
-          Rigor
+          Strictness
           <select
             value={strictness}
             onChange={(e) => persist({ strictness: e.target.value })}
@@ -622,22 +622,22 @@ export function Shred({ spelling }: Props) {
           </select>
         </label>
 
-        <label title="Quantas voltas limpas seguidas sobem o andamento. Uma volta ruim zera a contagem.">
-          Sobe apos
+        <label title="How many clean reps in a row raise the tempo. One bad rep resets the count.">
+          Raise after
           <select
             value={range.advanceReps}
             onChange={(e) =>
               persist({ advanceReps: Number(e.target.value) })
             }
           >
-            <option value={1}>1 limpa</option>
-            <option value={2}>2 limpas</option>
-            <option value={3}>3 limpas</option>
+            <option value={1}>1 clean</option>
+            <option value={2}>2 clean</option>
+            <option value={3}>3 clean</option>
           </select>
         </label>
 
         <label>
-          Modo
+          Mode
           <select value={mode} onChange={(e) => persist({ mode: e.target.value })}>
             {(Object.keys(MODE_LABEL) as Mode[]).map((m) => (
               <option key={m} value={m}>
@@ -649,14 +649,14 @@ export function Shred({ spelling }: Props) {
 
         {phase === 'idle' ? (
           <>
-            <button onClick={ouvir}>Ouvir</button>
+            <button onClick={listen}>Listen</button>
             <button className="primary" onClick={start}>
-              Comecar
+              Start
             </button>
           </>
         ) : (
           <button className="primary" onClick={stop}>
-            Parar
+            Stop
           </button>
         )}
       </div>
@@ -665,7 +665,7 @@ export function Shred({ spelling }: Props) {
         <div>
           <span className="badge">{FAMILY_LABEL[exercise.family]}</span>
           <span className="badge">{LEVEL_LABEL[exercise.level]}</span>
-          <strong>{exercise.label}</strong> em {pitchClassName(rootPc, spelling)}
+          <strong>{exercise.label}</strong> in {pitchClassName(rootPc, spelling)}
           <span className="focus"> · {exercise.focus}</span>
           {handMode !== 'as-is' && (
             <span className="badge override">{HAND_MODE_LABEL[handMode]}</span>
@@ -673,13 +673,13 @@ export function Shred({ spelling }: Props) {
         </div>
         <div className="tempo">
           {mode === 'accel' ? (
-            // No accel quem manda no andamento e a curva, nao voce.
+            // In accel the curve controls the tempo, not you.
             <span className={`bpm ${phase}`}>{bpmNow} BPM</span>
           ) : (
             <span className="tempo-picker">
               <button
                 onClick={() => setTempo(bpmRef.current - DEFAULT_RAMP.stepBpm)}
-                aria-label="diminuir andamento"
+                aria-label="lower tempo"
               >
                 −
               </button>
@@ -695,7 +695,7 @@ export function Shred({ spelling }: Props) {
               <span className="dim">BPM</span>
               <button
                 onClick={() => setTempo(bpmRef.current + DEFAULT_RAMP.stepBpm)}
-                aria-label="aumentar andamento"
+                aria-label="raise tempo"
               >
                 +
               </button>
@@ -703,9 +703,9 @@ export function Shred({ spelling }: Props) {
           )}
           <span className="dim">
             {' '}
-            alvo {exercise.tempos.target} · {repBars} compasso{repBars > 1 ? 's' : ''} por volta
+            target {exercise.tempos.target} · {repBars} bar{repBars > 1 ? 's' : ''} per rep
           </span>
-          {best > 0 && <span className="pr"> recorde {best}</span>}
+          {best > 0 && <span className="pr"> record {best}</span>}
           {pr && <span className="dim"> ({pitchClassName(rootPc, spelling)}: {pr.bpm})</span>}
         </div>
       </div>
@@ -719,17 +719,17 @@ export function Shred({ spelling }: Props) {
             step={1}
             value={ramp.bpm}
             onChange={(e) => setTempo(Number(e.target.value))}
-            aria-label="andamento"
+            aria-label="tempo"
           />
           <span className="dim">
-            {exercise.tempos.start} inicial · {exercise.tempos.target} alvo
+            {exercise.tempos.start} start · {exercise.tempos.target} target
           </span>
         </label>
       )}
 
       <div className="audio-row">
-        <label className="click-volume" title="Volume do clique. Nao afeta o piano.">
-          clique {Math.round(range.clickVolume * 100)}%
+        <label className="click-volume" title="Click volume. Does not affect the piano.">
+          click {Math.round(range.clickVolume * 100)}%
           <input
             type="range"
             min={0}
@@ -746,14 +746,14 @@ export function Shred({ spelling }: Props) {
 
         <label
           className="click-volume"
-          title="O piano toca o exercicio junto com voce, volta apos volta — nao so no Ouvir."
+          title="The piano plays the exercise along with you, rep after rep — not only in Listen."
         >
           <input
             type="checkbox"
             checked={range.guide}
             onChange={(e) => persist({ guide: e.target.checked })}
           />
-          referencia {Math.round(range.guideVolume * 100)}%
+          guide {Math.round(range.guideVolume * 100)}%
           <input
             type="range"
             min={0}
@@ -777,16 +777,16 @@ export function Shred({ spelling }: Props) {
             <>
               <Dots on={ramp.failStreak} total={DEFAULT_RAMP.repsToRetreat} />
               {' '}
-              mais {DEFAULT_RAMP.repsToRetreat - ramp.failStreak} falha
-              {DEFAULT_RAMP.repsToRetreat - ramp.failStreak > 1 ? 's' : ''} e desce para{' '}
+              {DEFAULT_RAMP.repsToRetreat - ramp.failStreak} more failure
+              {DEFAULT_RAMP.repsToRetreat - ramp.failStreak > 1 ? 's' : ''} and it drops to{' '}
               <strong>{targets.down}</strong> BPM
             </>
           ) : (
             <>
               <Dots on={ramp.cleanStreak} total={rampConfig.repsToAdvance} />
               {' '}
-              mais {rampConfig.repsToAdvance - ramp.cleanStreak} limpa
-              {rampConfig.repsToAdvance - ramp.cleanStreak > 1 ? 's' : ''} e sobe para{' '}
+              {rampConfig.repsToAdvance - ramp.cleanStreak} more clean
+              {rampConfig.repsToAdvance - ramp.cleanStreak > 1 ? ' reps' : ' rep'} and it climbs to{' '}
               <strong>{targets.up}</strong> BPM
             </>
           )}
@@ -794,19 +794,19 @@ export function Shred({ spelling }: Props) {
       )}
 
       <p className="limits">
-        Nesta volta passa com ate{' '}
+        This rep passes with up to{' '}
         <strong>
-          {Math.max(1, Math.round(tolerance.maxErrorRate * expansion.notes.length))} erro
+          {Math.max(1, Math.round(tolerance.maxErrorRate * expansion.notes.length))} error
           {Math.max(1, Math.round(tolerance.maxErrorRate * expansion.notes.length)) > 1 ? 's' : ''}
         </strong>{' '}
-        em {expansion.notes.length} notas
+        in {expansion.notes.length} notes
         {tolerance.timingGates ? (
           <>
-            {' '}· irregularidade ate <strong>{(tolerance.maxIoiCv * 100).toFixed(0)}%</strong> ·
-            andamento ±<strong>{(tolerance.maxBpmDeviation * 100).toFixed(0)}%</strong>
+            {' '}· unevenness up to <strong>{(tolerance.maxIoiCv * 100).toFixed(0)}%</strong> ·
+            tempo ±<strong>{(tolerance.maxBpmDeviation * 100).toFixed(0)}%</strong>
           </>
         ) : (
-          <> · timing so medido, nao reprova</>
+          <> · timing measured only, does not fail you</>
         )}
       </p>
       {expansion.warning && <p className="warn">{expansion.warning}</p>}
@@ -814,8 +814,8 @@ export function Shred({ spelling }: Props) {
 
       <div className="roll-stack">
         {announce && <div className={`roll-announce ${announce.kind}`}>{announce.text}</div>}
-        {!announce && prestesASubir && (
-          <div className="roll-warn">esta volta limpa sobe para {targets.up} BPM</div>
+        {!announce && aboutToClimb && (
+          <div className="roll-warn">a clean rep here climbs to {targets.up} BPM</div>
         )}
         <PianoRoll
           expected={expansion.notes}
@@ -832,30 +832,30 @@ export function Shred({ spelling }: Props) {
       </div>
 
       <div className={`verdict-bar ${phase} ${lastGrade ? (lastGrade.passed ? 'ok' : 'fail') : ''}`}>
-        {phase === 'demo' && <span>ouvindo — o piano toca, voce so olha</span>}
-        {phase === 'countin' && <span>contagem...</span>}
-        {phase === 'resting' && <span>descanso — deixe a mao solta</span>}
-        {phase === 'playing' && !lastGrade && <span>tocando</span>}
+        {phase === 'demo' && <span>listening — the piano plays, you just watch</span>}
+        {phase === 'countin' && <span>counting in...</span>}
+        {phase === 'resting' && <span>rest — let the hand go loose</span>}
+        {phase === 'playing' && !lastGrade && <span>playing</span>}
         {lastGrade && (
           <>
-            <strong>{lastGrade.passed ? 'limpo' : 'ainda nao'}</strong>
-            <span className="metric" title="notas certas na ordem">
-              {Math.round(lastGrade.accuracy * 100)}% certas
+            <strong>{lastGrade.passed ? 'clean' : 'not yet'}</strong>
+            <span className="metric" title="right notes in order">
+              {Math.round(lastGrade.accuracy * 100)}% right
             </span>
-            <span className="metric" title="coeficiente de variacao dos intervalos entre ataques">
-              regularidade {(lastGrade.ioiCv * 100).toFixed(1)}%
+            <span className="metric" title="coefficient of variation of the inter-onset intervals">
+              evenness {(lastGrade.ioiCv * 100).toFixed(1)}%
             </span>
-            <span className="metric">{Math.round(lastGrade.effectiveBpm)} BPM real</span>
+            <span className="metric">{Math.round(lastGrade.effectiveBpm)} BPM actual</span>
             {lastGrade.handSpreadMs > 0 && (
-              <span className="metric" title="quanto as duas maos saem separadas">
-                maos {lastGrade.handSpreadMs.toFixed(0)}ms
+              <span className="metric" title="how far apart the two hands land">
+                hands {lastGrade.handSpreadMs.toFixed(0)}ms
               </span>
             )}
-            <span className="metric" title="desigualdade de ataque — teclado leve piora isso">
-              ataque ±{lastGrade.velocityStdev.toFixed(0)}
+            <span className="metric" title="attack unevenness — a light keyboard makes this worse">
+              attack ±{lastGrade.velocityStdev.toFixed(0)}
             </span>
-            <span className="metric" title="distancia media do clique. Se for grande e constante, ajuste o atraso em Teclado e entrada.">
-              grade {lastGrade.gridMadMs.toFixed(0)}ms
+            <span className="metric" title="mean distance from the click. If it is large and constant, adjust the latency under Keyboard and input.">
+              grid {lastGrade.gridMadMs.toFixed(0)}ms
             </span>
           </>
         )}
@@ -865,10 +865,10 @@ export function Shred({ spelling }: Props) {
         {lastGrade && (lastGrade.missedNotes.length > 0 || lastGrade.extraNotes.length > 0) && (
           <span className="note-diff">
             {lastGrade.missedNotes.length > 0 && (
-              <>faltou {nomes(lastGrade.missedNotes, spelling)}</>
+              <>missing {noteNames(lastGrade.missedNotes, spelling)}</>
             )}
             {lastGrade.missedNotes.length > 0 && lastGrade.extraNotes.length > 0 && ' · '}
-            {lastGrade.extraNotes.length > 0 && <>sobrou {nomes(lastGrade.extraNotes, spelling)}</>}
+            {lastGrade.extraNotes.length > 0 && <>extra {noteNames(lastGrade.extraNotes, spelling)}</>}
           </span>
         )}
       </div>
@@ -887,17 +887,17 @@ export function Shred({ spelling }: Props) {
 
       {worst.length > 0 && (
         <div className="diagnosis">
-          <h3>Onde voce embola</h3>
+          <h3>Where you fumble</h3>
           <p className="dim">
-            Desvio medio por nota, acumulado nas suas passadas por este exercicio.
+            Mean deviation per note, accumulated over your passes through this exercise.
           </p>
           <ul>
             {worst.map((w) => {
-              const alvo = expansion.notes.find((n) => n.group === w.index)
+              const target = expansion.notes.find((n) => n.group === w.index)
               return (
                 <li key={w.index}>
-                  nota {w.index + 1}
-                  {alvo && ` (${midiToName(alvo.midi, spelling)}${alvo.finger ? `, dedo ${alvo.finger}` : ''})`}
+                  note {w.index + 1}
+                  {target && ` (${midiToName(target.midi, spelling)}${target.finger ? `, finger ${target.finger}` : ''})`}
                   : ±{w.devMs.toFixed(0)}ms
                 </li>
               )
@@ -907,17 +907,17 @@ export function Shred({ spelling }: Props) {
       )}
 
       <details className="shred-settings">
-        <summary>Teclado e entrada</summary>
+        <summary>Keyboard and input</summary>
         <div className="controls">
           <span>
-            Faixa: {midiToName(range.low, spelling)} a {midiToName(range.high, spelling)}
+            Range: {midiToName(range.low, spelling)} to {midiToName(range.high, spelling)}
           </span>
           {detecting ? (
             <>
               <span className="dim">
-                toque a nota mais grave e a mais aguda ({detecting.low <= detecting.high
+                play the lowest and the highest note ({detecting.low <= detecting.high
                   ? `${midiToName(detecting.low, spelling)}–${midiToName(detecting.high, spelling)}`
-                  : 'aguardando'})
+                  : 'waiting'})
               </span>
               <button
                 onClick={() => {
@@ -927,15 +927,15 @@ export function Shred({ spelling }: Props) {
                   setDetecting(null)
                 }}
               >
-                Usar
+                Use
               </button>
-              <button onClick={() => setDetecting(null)}>Cancelar</button>
+              <button onClick={() => setDetecting(null)}>Cancel</button>
             </>
           ) : (
-            <button onClick={() => setDetecting({ low: 127, high: 0 })}>Detectar</button>
+            <button onClick={() => setDetecting({ low: 127, high: 0 })}>Detect</button>
           )}
-          <label title="Descontado do instante de cada nota. Suba ate o desvio de grade cair.">
-            atraso {range.latencyMs}ms
+          <label title="Subtracted from the instant of each note. Raise it until the grid deviation drops.">
+            latency {range.latencyMs}ms
             <input
               type="range"
               min={-50}
@@ -945,17 +945,17 @@ export function Shred({ spelling }: Props) {
               onChange={(e) => persist({ latencyMs: Number(e.target.value) })}
             />
           </label>
-          <label title="Numero do dedo em cima de cada nota do piano-roll.">
+          <label title="Finger number on each note of the piano roll.">
             <input
               type="checkbox"
               checked={range.showFingers}
               onChange={(e) => persist({ showFingers: e.target.checked })}
             />
-            dedilhado
+            fingering
           </label>
           <label>
             <input type="checkbox" checked={qwerty} onChange={(e) => persist({ qwerty: e.target.checked })} />
-            teclado do computador
+            computer keyboard
           </label>
         </div>
         {qwerty && <p className="dim">{QWERTY_HELP}</p>}
@@ -964,17 +964,17 @@ export function Shred({ spelling }: Props) {
       <div className="stats">
         {sessionRef.current.reps > 0 && (
           <>
-            sessao: {sessionRef.current.passed}/{sessionRef.current.reps} limpas ·{' '}
+            session: {sessionRef.current.passed}/{sessionRef.current.reps} clean ·{' '}
           </>
         )}
-        {best > 0 ? `recorde ${best} BPM` : 'sem recorde ainda'}
+        {best > 0 ? `record ${best} BPM` : 'no record yet'}
         <button
           onClick={() => {
             clearShredStats()
             setStats(loadShredStats())
           }}
         >
-          zerar
+          reset
         </button>
       </div>
     </div>

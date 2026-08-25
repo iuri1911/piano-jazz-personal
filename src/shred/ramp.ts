@@ -1,29 +1,29 @@
-// Como o andamento sobe, e os modos de sessao.
+// How the tempo climbs, and the session modes.
 
 export type Mode = 'ladder' | 'burst' | 'accel' | 'free'
 
 export const MODE_LABEL: Record<Mode, string> = {
-  ladder: 'Escada',
-  burst: 'Rajada',
-  accel: 'Acelerando',
-  free: 'Livre',
+  ladder: 'Ladder',
+  burst: 'Burst',
+  accel: 'Accelerating',
+  free: 'Free',
 }
 
 export const MODE_HELP: Record<Mode, string> = {
-  ladder: 'N repeticoes limpas sobem o BPM; duas falhas descem. O protocolo padrao.',
-  burst: 'Toca uma repeticao, descansa uma. Serve pra ir acima do confortavel sem acumular tensao — e assim que barreira de velocidade cai.',
-  accel: 'O clique acelera do inicial ao alvo durante a sessao. Mostra em que BPM voce quebra.',
-  free: 'So o metronomo, sem avaliacao.',
+  ladder: 'N clean reps raise the BPM; two failures bring it down. The standard protocol.',
+  burst: 'Play one rep, rest one. It lets you go above comfortable without accumulating tension — this is how a speed barrier comes down.',
+  accel: 'The click accelerates from the starting tempo to the target over the session. Shows the BPM where you break.',
+  free: 'Metronome only, no grading.',
 }
 
 export type RampConfig = {
   minBpm: number
   maxBpm: number
-  /** Quanto sobe e quanto desce, em BPM. Vale pro ramp e pros botoes. */
+  /** How much it climbs and drops, in BPM. Applies to the ramp and the buttons. */
   stepBpm: number
-  /** Repeticoes limpas seguidas pra subir. */
+  /** Consecutive clean reps needed to move up. */
   repsToAdvance: number
-  /** Falhas seguidas pra descer. */
+  /** Consecutive failures needed to move down. */
   repsToRetreat: number
 }
 
@@ -39,7 +39,7 @@ export type RampState = {
   bpm: number
   cleanStreak: number
   failStreak: number
-  /** Maior BPM em que uma repeticao passou nesta sessao. */
+  /** Highest BPM at which a rep passed in this session. */
   bestCleanBpm: number
 }
 
@@ -50,8 +50,8 @@ export function newRamp(bpm: number): RampState {
 export type RampEvent = 'up' | 'down' | 'hold'
 
 /**
- * Aplica o resultado de uma repeticao. Puro: a decisao de andamento e
- * exatamente o tipo de coisa que fica errada em silencio dentro de um effect.
+ * Applies the result of one rep. Pure: a tempo decision is exactly the kind of
+ * thing that goes silently wrong inside an effect.
  */
 export function nextRamp(
   state: RampState,
@@ -77,8 +77,8 @@ export function nextRamp(
 
   const failStreak = state.failStreak + 1
   if (failStreak >= config.repsToRetreat) {
-    // Desce um passo, o mesmo que subiria: o andamento anda numa grade so, e
-    // voce sempre sabe pra onde vai antes de acontecer.
+    // Drops one step, the same one it would climb: the tempo moves on a single
+    // grid, and you always know where it is going before it happens.
     return {
       state: {
         bpm: Math.max(config.minBpm, state.bpm - config.stepBpm),
@@ -93,12 +93,12 @@ export function nextRamp(
 }
 
 /**
- * Curva de tempo do modo accel: o BPM sobe linearmente por TEMPO (nao por
- * segundo). Devolve onde cada tempo cai em ms.
+ * Tempo curve for accel mode: the BPM climbs linearly per BEAT (not per second).
+ * Returns where each beat lands in ms.
  *
- * Reproduz o mesmo passo a passo do transporte — que agenda cada tempo com a
- * duracao do BPM daquele tempo — em vez da integral exata. Se as duas contas
- * divergissem, a avaliacao acusaria atraso onde a pessoa tocou certo.
+ * It reproduces the transport step by step — which schedules each beat with the
+ * duration of that beat's BPM — instead of the exact integral. If the two
+ * calculations diverged, grading would report a drag where the player was right.
  */
 export function accelCurve(
   startBpm: number,
@@ -129,7 +129,7 @@ export function bpmAtBeat(
   return startBpm + (endBpm - startBpm) * t
 }
 
-/** Pra onde o andamento vai na proxima subida e na proxima descida. */
+/** Where the tempo goes on the next climb and the next drop. */
 export function rampTargets(
   state: RampState,
   config: RampConfig = DEFAULT_RAMP,

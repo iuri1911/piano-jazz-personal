@@ -1,29 +1,30 @@
 import { useEffect, useRef } from 'react'
 import type { MidiEvent } from '../midi'
 
-// Entrada pelo teclado do computador.
+// Input from the computer keyboard.
 //
-// Existe pra dar pra testar o motor sem hardware — e serve de plano B quando o
-// A-49 nao esta na mesa. Layout de tracker: a fila de baixo e uma oitava, a de
-// cima e a seguinte, com as pretas nas teclas de cima de cada uma.
+// It exists so the engine can be tested without hardware — and it works as a
+// fallback when the controller is not on the desk. Tracker layout: the bottom
+// row is one octave, the top row the next, with the black keys on the row above
+// each of them.
 
 const LAYOUT: Record<string, number> = {
-  // oitava base
+  // base octave
   KeyZ: 0, KeyS: 1, KeyX: 2, KeyD: 3, KeyC: 4, KeyV: 5,
   KeyG: 6, KeyB: 7, KeyH: 8, KeyN: 9, KeyJ: 10, KeyM: 11,
   Comma: 12, KeyL: 13, Period: 14, Semicolon: 15, Slash: 16,
-  // oitava de cima
+  // octave above
   KeyQ: 12, Digit2: 13, KeyW: 14, Digit3: 15, KeyE: 16, KeyR: 17,
   Digit5: 18, KeyT: 19, Digit6: 20, KeyY: 21, Digit7: 22, KeyU: 23,
   KeyI: 24, Digit9: 25, KeyO: 26, Digit0: 27, KeyP: 28,
 }
 
 export const QWERTY_HELP =
-  'Fila de baixo (Z S X D C...) e a oitava base, fila de cima (Q 2 W 3 E...) a seguinte. Setas ← → mudam de oitava.'
+  'The bottom row (Z S X D C...) is the base octave, the top row (Q 2 W 3 E...) the next one. The ← → arrows change octave.'
 
 /**
- * Emite os mesmos MidiEvent do teclado de verdade, entao o resto do app nao
- * sabe a diferenca. `baseNote` e o C mais grave do layout.
+ * Emits the same MidiEvent as the real keyboard, so the rest of the app cannot
+ * tell the difference. `baseNote` is the lowest C of the layout.
  */
 export function useComputerKeyboard(
   enabled: boolean,
@@ -51,7 +52,7 @@ export function useComputerKeyboard(
       const offset = LAYOUT[e.code]
       if (offset === undefined) return
       e.preventDefault()
-      // O autorepeat do SO mandaria dezenas de note-on da mesma tecla segurada.
+      // OS autorepeat would send dozens of note-ons for the same held key.
       if (down.current.has(e.code)) return
       down.current.add(e.code)
       cb.current({
@@ -73,7 +74,7 @@ export function useComputerKeyboard(
       })
     }
 
-    // Trocar de aba com tecla apertada deixaria a nota presa pra sempre.
+    // Switching tabs with a key held down would leave the note stuck forever.
     const blur = () => down.current.clear()
 
     window.addEventListener('keydown', keyDown)

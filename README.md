@@ -1,79 +1,79 @@
 # Piano Jazz Trainer
 
-**No ar: https://iuri1911.github.io/piano-jazz-personal/**
+**Live: https://iuri1911.github.io/piano-jazz-personal/**
 
-Treino de piano por MIDI: voicings de jazz e shredding. O som do piano vem do seu teclado — o app só sintetiza o clique do metrônomo, na aba Shred.
+MIDI piano practice: jazz voicings and shredding. The piano sound comes from your own keyboard — the app only synthesizes the metronome click, on the Shred tab.
 
-Para rodar local:
+To run locally:
 
 ```bash
 npm install && npm run dev
 ```
 
-Abrir em **Chrome ou Edge** (Web MIDI API não existe no Firefox/Safari) e aceitar o acesso MIDI.
+Open it in **Chrome or Edge** (the Web MIDI API does not exist in Firefox/Safari) and grant MIDI access.
 
-- **Visualizador** — toca qualquer coisa, mostra teclado, pauta, nome do acorde, intervalos, e reconhece qual voicing é.
-- **Drill** — escolhe voicing e qualidade, ele pede o acorde nos 12 tons e valida nota por nota, oitava exata.
-- **Shred** — exercícios de velocidade contra metrônomo, do iniciante ao avançado, com subida gradual de BPM.
+- **Visualizer** — play anything and it shows the keyboard, the staff, the chord name, the intervals, and recognizes which voicing it is.
+- **Drill** — pick a voicing and a quality, and it asks for the chord in all 12 keys, validating note by note, exact octave.
+- **Shred** — speed exercises against a metronome, from beginner to advanced, with the BPM climbing gradually.
 
-O pedal de sustain conta: nota solta com o pedal pisado continua fazendo parte do acorde, igual ao piano. Para trocar de acorde, levanta o pedal.
+The sustain pedal counts: a note released with the pedal down stays part of the chord, just like on a piano. To change chord, lift the pedal.
 
-Os 10 voicings ficam em [`src/voicings.ts`](src/voicings.ts), escritos como graus (`"3'"` = terça uma oitava acima). Para corrigir ou adicionar um voicing, mexer só nessa tabela.
+The 10 voicings live in [`src/voicings.ts`](src/voicings.ts), written as degrees (`"3'"` = the third one octave up). To fix or add a voicing, edit only that table.
 
 ## Shred
 
-17 exercícios em 5 níveis — técnica pura, prog (ELP/Dream Theater), licks de guitarra e bebop — em [`src/shred/exercises.ts`](src/shred/exercises.ts). Mesma ideia dos voicings: cada exercício é a FORMA do desenho, e sai nos 12 tons e em qualquer subdivisão. Para adicionar um exercício, mexer só nessa tabela.
+17 exercises across 5 levels — pure technique, prog (ELP/Dream Theater), guitar licks and bebop — in [`src/shred/exercises.ts`](src/shred/exercises.ts). Same idea as the voicings: each exercise is the SHAPE of the figure, and it comes out in all 12 keys and in any subdivision. To add an exercise, edit only that table.
 
-A repetição passa quando as notas saem certas na ordem **e** o espaçamento entre ataques é regular (coeficiente de variação abaixo do limite do nível), no andamento pedido ±3%. Regularidade importa mais que grudar no clique: shred embolado quase sempre está certo na média e errado no detalhe. Duas repetições limpas sobem o BPM; duas falhas descem.
+A rep passes when the notes come out right in order **and** the spacing between onsets is even (coefficient of variation below the level limit), at the requested tempo ±3%. Evenness matters more than sticking to the click: sloppy shred is almost always right on average and wrong in the detail. Two clean reps raise the BPM; two failures bring it down.
 
-Como o desenho esperado é conhecido nota a nota, o app acumula o desvio **por nota** e aponta qual você embola — normalmente a que vem logo depois da passagem de polegar.
+Since the expected figure is known note by note, the app accumulates the deviation **per note** and points out which one you fumble — usually the one right after the thumb crossing.
 
-Sobre ser permissivo na entrada, que é onde é fácil errar a mão:
+On being permissive at note entry, which is where it is easy to misjudge the player:
 
-- O orçamento de erro tem **piso de 1**. Numa volta de 17 notas, 3% arredondado daria zero, e exigir execução perfeita não é treino.
-- Depois de dois ataques seguidos sem casar, o alinhamento **abre a busca** e reencontra a linha. Sem isso, derrapar e pular mais de 3 notas travava o cursor e todo o resto da volta virava "sobrando".
-- A folga nas bordas da volta é **fração de tempo, não milissegundos fixos** — a 80 BPM um tempo tem 750ms, e uma folga fixa de 120ms descartava nota que entrou no lugar certo.
-- Volta em que você não tocou (ajustando o teclado, lendo a tela) não conta como falha e **não desce o BPM**.
-- Exercício que sobe volta descendo. Antes, os que só subiam teleportavam duas oitavas no fim da volta — impossível de tocar em loop. A descida é o **espelho em torno do topo**, não a figura tocada de trás pra frente: para desenho simétrico dá no mesmo, mas para figura assimétrica (Hanon) o espelho é a forma descendente de verdade.
-- Se as notas que faltaram e as que sobraram são o mesmo desenho deslocado, ele diz: *"você tocou tudo 1 oitava abaixo"*. É o erro mais comum e o mais confuso quando aparece como erro cru.
+- The error budget has a **floor of 1**. On a 17-note rep, 3% rounded would give zero, and demanding a perfect performance is not practice.
+- After two consecutive unmatched onsets, the alignment **widens its search** and finds the line again. Without it, slipping and skipping more than 3 notes froze the cursor and turned all the rest of the rep into "extra".
+- The grace at the edges of a rep is a **fraction of a beat, not fixed milliseconds** — at 80 BPM a beat is 750ms, and a fixed 120ms grace discarded notes that landed in the right place.
+- A rep you did not play (adjusting the keyboard, reading the screen) does not count as a failure and **does not lower the BPM**.
+- An exercise that climbs comes back down. Before, the ones that only climbed teleported two octaves at the end of the rep — impossible to play in a loop. The descent is the **mirror around the top**, not the figure played backwards: for a symmetric shape it comes to the same thing, but for an asymmetric figure (Hanon) the mirror is the real descending form.
+- If the notes that were missing and the ones that were extra are the same figure shifted, it tells you: *"you played the whole thing 1 octave down"*. It is the most common mistake and the most confusing one when it shows up as raw error.
 
-Se as notas aparecem sistematicamente longe do clique, ajuste **atraso** em *Teclado e entrada* até o número `grade` do veredito cair. Deslocamento constante não afeta a regularidade nem a aprovação — mexe só em onde a nota aparece contra a grade e no piano-roll.
+If the notes land systematically far from the click, adjust **latency** under *Keyboard and input* until the `grid` number in the verdict drops. A constant offset affects neither evenness nor passing — it only changes where the note appears against the grid and in the piano roll.
 
-As notas caindo trazem o **número do dedo**, colorido por mão (direita em azul, esquerda em cinza), com um toggle em *Teclado e entrada*. Onde o dedilhado é padrão de verdade ele está escrito; onde depende da mão que chega na nota ou do tom — oitavas mão-a-mão, toccata, ostinato, envolvente bebop — não tem número, e a nota do exercício diz por quê. Número errado atrapalha mais que número nenhum.
+The falling notes carry the **finger number**, coloured by hand (right in blue, left in grey), with a toggle under *Keyboard and input*. Where the fingering is genuinely standard it is written down; where it depends on which hand arrives at the note or on the key — hand-to-hand octaves, toccata, ostinato, bebop enclosure — there is no number, and the exercise note says why. A wrong number gets in the way more than no number at all.
 
-A esquerda tem lista própria quando a forma dela é outra: em Dó maior a direita faz `1 2 3 1 2 3 4` e a esquerda `1 4 3 2 1 3 2`. Não sai uma da outra por fórmula, então onde a lista da esquerda não existe ela fica sem número em vez de herdar o da direita.
+The left hand has a list of its own when its shape differs: in C major the right hand does `1 2 3 1 2 3 4` and the left `1 4 3 2 1 3 2`. Neither follows from the other by formula, so where the left hand list does not exist it stays without a number instead of inheriting the right hand's.
 
-**Ouvir** toca o exercício num piano sintetizado, no andamento que você escolheu, com o piano-roll andando junto — serve pra decorar o desenho antes de tentar. É oscilador com queda exponencial, não piano amostrado: o que interessa é altura e ritmo audíveis.
+**Listen** plays the exercise on a synthesized piano, at the tempo you picked, with the piano roll moving along — it is there to memorize the figure before trying it. It is an oscillator with an exponential decay, not a sampled piano: what matters is audible pitch and rhythm.
 
-O checkbox **referência** faz esse mesmo piano tocar *durante* o exercício, volta após volta, enquanto você é avaliado — útil pra padrão que você ainda não decorou. Tem volume próprio, separado do clique, porque o balanço contra o som do seu teclado é você quem sabe. Vem desligado: piano tocando junto é escolha, não surpresa. As notas são agendadas um tempo por vez, então o Hanon não cria 320 osciladores quarenta segundos antes de precisar deles.
+The **guide** checkbox makes that same piano play *during* the exercise, rep after rep, while you are being graded — useful for a pattern you have not memorized yet. It has its own volume, separate from the click, because only you know the balance against the sound of your keyboard. It ships off: a piano playing along is a choice, not a surprise. The notes are scheduled one beat at a time, so Hanon does not create 320 oscillators forty seconds before it needs them.
 
-O andamento é seu: **− / +** (de 10 em 10) ou o campo de BPM no cabeçalho, mais um slider. Mudar na mão zera as sequências de limpas, senão o próximo acerto promoveria de um ponto que você não conquistou. No modo *acelerando* quem manda é a curva, então o controle sai.
+The tempo is yours: **− / +** (in steps of 10) or the BPM field in the header, plus a slider. Changing it by hand resets the clean streaks, otherwise the next success would promote you from a point you did not earn. In *accelerating* mode the curve is in charge, so the control disappears.
 
-Quando a volta atual pode promover, o piano-roll avisa antes: **"esta volta limpa sobe para 90 BPM"**. E quando o andamento muda de verdade, aparece **↑ 90 BPM** em letra grande e o transporte dá um compasso de contagem no tempo novo — o andamento não troca embaixo da sua mão sem aviso.
+When the current rep can promote you, the piano roll warns you beforehand: **"a clean rep here climbs to 90 BPM"**. And when the tempo actually changes, **↑ 90 BPM** appears in large type and the transport gives a count-in bar at the new tempo — the tempo does not change under your hand without warning.
 
-Logo abaixo fica a contagem para o próximo degrau — `●○ mais 1 limpa e sobe para 70 BPM` — e ela vira vermelha contando as falhas quando o andamento está prestes a descer. Sobe e desce na mesma grade de 10, então falhar desfaz exatamente a última subida.
+Just below sits the count toward the next step — `●○ 1 more clean rep and it climbs to 70 BPM` — and it turns red counting the failures when the tempo is about to drop. It climbs and drops on the same grid of 10, so failing undoes exactly the last climb.
 
-Tudo que você seleciona — exercício, tom, mãos, ordem, modo, rigor, andamento, volume, faixa do teclado — fica salvo e volta igual no próximo carregamento.
+Everything you select — exercise, key, hands, order, mode, strictness, tempo, volume, keyboard range — is saved and comes back identical on the next load.
 
-**Sobe após** define quantas voltas limpas *seguidas* promovem: 1, 2 ou 3. Em 2 (o padrão) uma volta ruim zera a contagem, e em exercício curto — o arpejo de sétima dura 3 segundos — é fácil nunca emendar duas e o andamento parecer travado. Se for esse o caso, use **1 limpa**: acertou, subiu.
+**Raise after** sets how many *consecutive* clean reps promote you: 1, 2 or 3. At 2 (the default) one bad rep resets the count, and on a short exercise — the seventh arpeggio lasts 3 seconds — it is easy to never string two together and for the tempo to seem stuck. If that is the case, use **1 clean**: nail it, climb.
 
-O slider **clique** controla só o volume do metrônomo; o piano do *Ouvir* não passa por ele, então dá para silenciar o clique e continuar ouvindo o exercício.
+The **click** slider controls only the metronome volume; the *Listen* piano does not go through it, so you can silence the click and keep hearing the exercise.
 
-**Rigor** define o quão permissivo é o veredito, por cima do padrão do nível do exercício — e a tela mostra os números que ele aplica, não é botão misterioso:
+**Strictness** sets how permissive the verdict is, on top of the default for the exercise level — and the screen shows the numbers it applies, it is not a mystery button:
 
-| | erros em 64 notas | irregularidade | andamento |
+| | errors in 64 notes | unevenness | tempo |
 |---|---|---|---|
-| aprendendo | 6 | só medido | só medido |
-| solto | 4 | 22% | ±10% |
-| padrão do nível | 2 | 14% | ±5% |
-| exigente | 1 | 11% | ±3% |
+| learning | 6 | measured only | measured only |
+| loose | 4 | 22% | ±10% |
+| level default | 2 | 14% | ±5% |
+| strict | 1 | 11% | ±3% |
 
-*Aprendendo* é o que você quer enquanto ainda está decorando a forma: timing continua medido e aparecendo na tela, mas não reprova.
+*Learning* is what you want while you are still memorizing the shape: timing is still measured and shown on screen, but it does not fail you.
 
-O seletor **Mãos** sobrepõe o arranjo da tabela: *só direita*, *só esquerda*, *as duas em oitava*, ou *como escrito* (o arranjo próprio do exercício). Mão separada e depois junta é a ordem normal de estudar qualquer passagem — o desenho, a subdivisão e o dedilhado ficam os mesmos, só muda quem toca. Em 49 teclas nem tudo cabe dobrado em oitava: quando não cabe, o app corta uma oitava e diz por quê.
+The **Hands** selector overrides the arrangement in the table: *right hand only*, *left hand only*, *both in octaves*, or *as written* (the exercise's own arrangement). Hands separately and then together is the normal way to study any passage — the figure, the subdivision and the fingering stay the same, only who plays changes. On 49 keys not everything fits doubled in octaves: when it does not, the app trims an octave and says why.
 
-Modos: escada (padrão), rajada (toca uma volta, descansa uma), acelerando (o clique sobe do inicial ao alvo) e livre.
+Modes: ladder (default), burst (play one rep, rest one), accelerating (the click climbs from the start tempo to the target) and free.
 
-Configure a faixa do teclado em *Teclado e entrada* — o botão **Detectar** grava a nota mais grave e a mais aguda que você tocar. O padrão é C2–C6, um controlador de 49 teclas. Dá para tocar pelo teclado do computador quando o controlador não está na mesa.
+Set the keyboard range under *Keyboard and input* — the **Detect** button records the lowest and the highest note you play. The default is C2–C6, a 49-key controller. You can play from the computer keyboard when the controller is not on the desk.
 
-`npm test` cobre transposição, validação, o parser de mensagens MIDI, a expansão dos padrões de shred nos 12 tons, o alinhamento tocado×esperado e a subida de andamento.
+`npm test` covers transposition, validation, the MIDI message parser, expanding the shred patterns into all 12 keys, the played×expected alignment and the tempo climb.
