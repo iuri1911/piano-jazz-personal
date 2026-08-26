@@ -49,11 +49,13 @@ The **guide** checkbox makes that same piano play *during* the exercise, rep aft
 
 The tempo is yours: **− / +** (in steps of 10) or the BPM field in the header, plus a slider. Changing it by hand resets the clean streaks, otherwise the next success would promote you from a point you did not earn. In *accelerating* mode the curve is in charge, so the control disappears.
 
+Next to the slider, **floor** is the lowest BPM the slider, the − button and the ladder can reach. It defaults to 40, which is fine for running a scale and useless for taking an arpeggio apart — a wide leap is worth practising at 20 or below, one note every few seconds, until the arm learns to carry the hand instead of the finger stretching for it. Set it as low as 10. Raising the floor above the current tempo brings the tempo up with it, so the BPM never sits outside what the controls can express.
+
 When the current rep can promote you, the piano roll warns you beforehand: **"a clean rep here climbs to 90 BPM"**. And when the tempo actually changes, **↑ 90 BPM** appears in large type and the transport gives a count-in bar at the new tempo — the tempo does not change under your hand without warning.
 
 Just below sits the count toward the next step — `●○ 1 more clean rep and it climbs to 70 BPM` — and it turns red counting the failures when the tempo is about to drop. It climbs and drops on the same grid of 10, so failing undoes exactly the last climb.
 
-Everything you select — exercise, key, hands, order, mode, strictness, tempo, volume, keyboard range — is saved and comes back identical on the next load.
+Everything you select — exercise, key, hands, order, mode, strictness, tempo, tempo floor, volume, keyboard range — is saved and comes back identical on the next load.
 
 **Raise after** sets how many *consecutive* clean reps promote you: 1, 2 or 3. At 2 (the default) one bad rep resets the count, and on a short exercise — the seventh arpeggio lasts 3 seconds — it is easy to never string two together and for the tempo to seem stuck. If that is the case, use **1 clean**: nail it, climb.
 

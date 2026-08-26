@@ -27,6 +27,14 @@ export type RampConfig = {
   repsToRetreat: number
 }
 
+/**
+ * Hard floor for the tempo floor itself. Slow practice on an arpeggio wants to go
+ * well under the default 40 — one note every couple of seconds is a real way to
+ * study a leap — so the only limit here is where a click stops being a pulse you
+ * can hold on to.
+ */
+export const ABS_MIN_BPM = 10
+
 export const DEFAULT_RAMP: RampConfig = {
   minBpm: 40,
   maxBpm: 240,

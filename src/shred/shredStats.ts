@@ -1,3 +1,5 @@
+import { ABS_MIN_BPM, DEFAULT_RAMP } from './ramp'
+
 const KEY = 'pjt:shred'
 
 export type Pr = { bpm: number; date: string }
@@ -131,6 +133,12 @@ export type ShredSettings = {
   latencyMs: number
   /** How permissive the verdict is. A practice preference, so it is saved. */
   strictness: string
+  /**
+   * Lowest BPM the buttons, the slider and the ladder can reach. A practice
+   * preference and not a property of the exercise: the same arpeggio that one
+   * player drills at 80 another wants to take apart at 20.
+   */
+  minBpm: number
   /** Click volume, 0 to 1. Metronome only — the "Listen" piano does not go through here. */
   clickVolume: number
   /** How many clean reps in a row raise the tempo. 1 raises it as soon as you nail one. */
@@ -162,6 +170,7 @@ export const DEFAULT_SETTINGS: ShredSettings = {
   high: 84,
   latencyMs: 0,
   strictness: 'standard',
+  minBpm: DEFAULT_RAMP.minBpm,
   clickVolume: 0.8,
   advanceReps: 2,
   exerciseId: '',
@@ -189,6 +198,9 @@ function normalize(raw: Partial<ShredSettings>): ShredSettings {
     low,
     high,
     latencyMs: Number.isFinite(raw.latencyMs) ? (raw.latencyMs as number) : DEFAULT_SETTINGS.latencyMs,
+    minBpm: Number.isFinite(raw.minBpm)
+      ? Math.max(ABS_MIN_BPM, Math.min(DEFAULT_RAMP.maxBpm - DEFAULT_RAMP.stepBpm, Math.round(raw.minBpm as number)))
+      : DEFAULT_SETTINGS.minBpm,
     strictness: STRICTNESS_VALUES.has(raw.strictness as string)
       ? (raw.strictness as string)
       : DEFAULT_SETTINGS.strictness,

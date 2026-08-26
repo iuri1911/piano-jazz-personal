@@ -122,6 +122,25 @@ describe('rampTargets', () => {
   })
 })
 
+describe('a lowered floor lets the ladder go under the default 40', () => {
+  it('drops past 40 when the config says so', () => {
+    const slow = { ...DEFAULT_RAMP, minBpm: 20 }
+    let s = newRamp(30)
+    s = nextRamp(s, false, slow).state
+    s = nextRamp(s, false, slow).state
+    expect(s.bpm).toBe(20)
+  })
+
+  it('still saturates at whatever floor was given', () => {
+    const slow = { ...DEFAULT_RAMP, minBpm: 20 }
+    let s = newRamp(20)
+    s = nextRamp(s, false, slow).state
+    s = nextRamp(s, false, slow).state
+    expect(s.bpm).toBe(20)
+    expect(rampTargets(newRamp(20), slow).down).toBe(20)
+  })
+})
+
 describe('how many clean reps to climb', () => {
   const withReps = (repsToAdvance: number) => ({ ...DEFAULT_RAMP, repsToAdvance })
 

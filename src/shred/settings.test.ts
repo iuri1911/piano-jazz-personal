@@ -1,5 +1,6 @@
 import { describe, expect, it, beforeEach } from 'vitest'
 import { DEFAULT_SETTINGS, loadSettings, saveSettings } from './shredStats'
+import { ABS_MIN_BPM, DEFAULT_RAMP } from './ramp'
 
 // jsdom is not enabled; a fake localStorage is enough to test the normalization,
 // which is where the missing-field bug shows up.
@@ -45,6 +46,22 @@ describe('normalizing the preferences', () => {
     // as-is it would reach toleranceFor() and match no case.
     store.set('pjt:shred:settings', JSON.stringify({ low: 36, high: 84, strictness: 'padrao' }))
     expect(loadSettings().strictness).toBe(DEFAULT_SETTINGS.strictness)
+  })
+
+  it('the tempo floor is a saved preference, clamped to what a click can hold', () => {
+    // Slow practice on an arpeggio is a real use, so the floor goes well under
+    // the default 40 — but not so low that the pulse stops being a pulse.
+    expect(saveSettings({ ...DEFAULT_SETTINGS, minBpm: 20 }).minBpm).toBe(20)
+    expect(saveSettings({ ...DEFAULT_SETTINGS, minBpm: 1 }).minBpm).toBe(ABS_MIN_BPM)
+    expect(saveSettings({ ...DEFAULT_SETTINGS, minBpm: 9999 }).minBpm).toBe(
+      DEFAULT_RAMP.maxBpm - DEFAULT_RAMP.stepBpm,
+    )
+    expect(loadSettings().minBpm).toBe(DEFAULT_RAMP.maxBpm - DEFAULT_RAMP.stepBpm)
+  })
+
+  it('settings saved before the floor existed keep the old floor', () => {
+    store.set('pjt:shred:settings', JSON.stringify({ low: 36, high: 84 }))
+    expect(loadSettings().minBpm).toBe(DEFAULT_RAMP.minBpm)
   })
 
   it('corrupt storage does not take it down', () => {

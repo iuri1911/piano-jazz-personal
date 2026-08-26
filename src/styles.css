@@ -547,6 +547,38 @@ button.primary {
   max-width: 380px;
 }
 
+/* The floor sits on the same line as the slider until the screen gets tight. */
+.tempo-row {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.tempo-floor {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--dim);
+}
+
+.tempo-floor input[type='number'] {
+  width: 4.5em;
+  font: inherit;
+  background: var(--panel);
+  color: var(--fg);
+  border: 1px solid #2c313b;
+  border-radius: 6px;
+  padding: 3px 6px;
+  font-variant-numeric: tabular-nums;
+}
+
+.tempo-floor input[type='number']:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
 .limits {
   margin: 0;
   font-size: 13px;

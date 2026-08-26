@@ -19,6 +19,7 @@ import { grade, type Grade, type PlayedNote } from './grade'
 import { HAND_MODE_LABEL, applyHandMode, expandPattern, type HandMode } from './pattern'
 import { PianoRoll, type PlayedMark } from './PianoRoll'
 import {
+  ABS_MIN_BPM,
   DEFAULT_RAMP,
   MODE_HELP,
   MODE_LABEL,
@@ -141,8 +142,8 @@ export function Shred({ spelling }: Props) {
   const strictness = (range.strictness ?? 'standard') as Strictness
   const tolerance = toleranceFor(exercise.level, strictness)
   const rampConfig = useMemo(
-    () => ({ ...DEFAULT_RAMP, repsToAdvance: range.advanceReps }),
-    [range.advanceReps],
+    () => ({ ...DEFAULT_RAMP, repsToAdvance: range.advanceReps, minBpm: range.minBpm }),
+    [range.advanceReps, range.minBpm],
   )
   const rampConfigRef = useRef(rampConfig)
   rampConfigRef.current = rampConfig
@@ -519,13 +520,31 @@ export function Shred({ spelling }: Props) {
     // An empty field or a "-" mid-typing becomes NaN, and NaN goes through
     // Math.min/max without complaint all the way to the input value.
     if (!Number.isFinite(bpm)) return
-    const target = Math.max(DEFAULT_RAMP.minBpm, Math.min(DEFAULT_RAMP.maxBpm, Math.round(bpm)))
+    const floor = rangeRef.current.minBpm
+    const target = Math.max(floor, Math.min(DEFAULT_RAMP.maxBpm, Math.round(bpm)))
     // Updates the ref immediately: two clicks in the same frame would read the same
     // ramp.bpm from the render and the second would not move.
     bpmRef.current = target
     setRamp((prev) => ({ ...prev, bpm: target, cleanStreak: 0, failStreak: 0 }))
     transportRef.current?.setBpm(target)
   }, [])
+
+  /**
+   * Moves the tempo floor. Raising it above the current tempo would leave the BPM
+   * outside the range the controls can express, so the tempo comes up with it.
+   */
+  const setFloor = useCallback(
+    (bpm: number) => {
+      if (!Number.isFinite(bpm)) return
+      const floor = Math.max(
+        ABS_MIN_BPM,
+        Math.min(DEFAULT_RAMP.maxBpm - DEFAULT_RAMP.stepBpm, Math.round(bpm)),
+      )
+      persist({ minBpm: floor })
+      if (bpmRef.current < floor) setTempo(floor)
+    },
+    [persist, setTempo],
+  )
 
   // --- derived for the view --------------------------------------------------
   const getPosition = useCallback(() => transportRef.current?.position() ?? Number.NaN, [])
@@ -686,7 +705,7 @@ export function Shred({ spelling }: Props) {
               <input
                 className={`bpm ${phase}`}
                 type="number"
-                min={DEFAULT_RAMP.minBpm}
+                min={range.minBpm}
                 max={DEFAULT_RAMP.maxBpm}
                 step={1}
                 value={ramp.bpm}
@@ -711,20 +730,37 @@ export function Shred({ spelling }: Props) {
       </div>
 
       {mode !== 'accel' && (
-        <label className="tempo-slider">
-          <input
-            type="range"
-            min={DEFAULT_RAMP.minBpm}
-            max={Math.max(DEFAULT_RAMP.maxBpm, exercise.tempos.target)}
-            step={1}
-            value={ramp.bpm}
-            onChange={(e) => setTempo(Number(e.target.value))}
-            aria-label="tempo"
-          />
-          <span className="dim">
-            {exercise.tempos.start} start · {exercise.tempos.target} target
-          </span>
-        </label>
+        <div className="tempo-row">
+          <label className="tempo-slider">
+            <input
+              type="range"
+              min={range.minBpm}
+              max={Math.max(DEFAULT_RAMP.maxBpm, exercise.tempos.target)}
+              step={1}
+              value={ramp.bpm}
+              onChange={(e) => setTempo(Number(e.target.value))}
+              aria-label="tempo"
+            />
+            <span className="dim">
+              {exercise.tempos.start} start · {exercise.tempos.target} target
+            </span>
+          </label>
+          <label
+            className="tempo-floor"
+            title="Lowest BPM the slider, the − button and the ladder can reach. Taking an arpeggio apart slowly wants a floor well under the default 40."
+          >
+            floor
+            <input
+              type="number"
+              min={ABS_MIN_BPM}
+              max={DEFAULT_RAMP.maxBpm - DEFAULT_RAMP.stepBpm}
+              step={5}
+              value={range.minBpm}
+              onChange={(e) => setFloor(Number(e.target.value))}
+            />
+            BPM
+          </label>
+        </div>
       )}
 
       <div className="audio-row">
