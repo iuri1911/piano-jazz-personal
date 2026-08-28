@@ -14,7 +14,7 @@ type Props = {
 }
 
 /** Grand staff. The split between clefs is by actual pitch (>= C4 goes to treble). */
-export function Staff({ notes, spelling = 'flat', color = '#111', label }: Props) {
+export function Staff({ notes, spelling = 'flat', color = '#1c1c1a', label }: Props) {
   const hostRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {

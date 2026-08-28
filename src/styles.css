@@ -1,12 +1,29 @@
 :root {
-  --bg: #14161a;
-  --panel: #1d2026;
-  --fg: #e7e9ee;
-  --dim: #8b93a3;
-  --accent: #6ea8fe;
-  --ok: #35c48a;
-  --bad: #e5544b;
-  --miss: #6ea8fe;
+  --bg: #0b0b0c;
+  --panel: #101011;
+  --fg: #edede8;
+  --fg-soft: #c9c9c2;
+  --dim: #8b8b83;
+  --faint: #82827a;
+  --ghost: #7c7c75;
+  --line: #1c1c1a;
+  --border: #2a2a26;
+  --border-hover: #4a4a45;
+  --accent: #9fe870;
+  --accent-bright: #d6fbb0;
+  --ok: #9fe870;
+  --bad: #e8705f;
+  --miss: #4a4a45;
+  --warn: #e0a33a;
+  --early: #e0a33a;
+  /* The keyboard is the one light surface in the app, so the bright accent
+     vanishes on it — #9FE870 on a white key is 1.03:1. These are the same hues
+     taken dark enough to clear 3:1 against BOTH the white and the black keys. */
+  --key-white: #d8d8d1;
+  --key-black: #1c1c1a;
+  --accent-deep: #3d7a22;
+  --bad-deep: #c2412f;
+  --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
   color-scheme: dark;
 }
 
@@ -14,82 +31,164 @@
   box-sizing: border-box;
 }
 
+html {
+  background: var(--bg);
+}
+
 body {
   margin: 0;
   background: var(--bg);
   color: var(--fg);
-  font: 15px/1.45 ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-family: var(--mono);
+  font-size: 14px;
+  line-height: 1.6;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--bg);
 }
 
 .app {
-  max-width: 1080px;
+  max-width: 1100px;
   margin: 0 auto;
-  padding: 16px 20px 48px;
+  padding: 32px 32px 72px;
 }
+
+/* ---- header --------------------------------------------------------------- */
 
 header {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 24px;
   flex-wrap: wrap;
-  padding-bottom: 8px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 20px;
 }
 
 h1 {
-  font-size: 18px;
+  font-size: 13px;
+  font-weight: 700;
   margin: 0;
-  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--fg);
+}
+
+h1 .caret {
+  margin-left: 7px;
+  vertical-align: -1px;
 }
 
 h3 {
-  font-size: 12px;
+  font-size: 11px;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.14em;
   color: var(--dim);
-  margin: 0 0 4px;
+  margin: 0 0 8px;
 }
 
 nav {
   display: flex;
-  gap: 4px;
+  gap: 18px;
 }
 
-button {
-  background: var(--panel);
-  color: var(--fg);
-  border: 1px solid #2c313b;
-  border-radius: 6px;
-  padding: 5px 12px;
+nav button {
+  background: none;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
   font: inherit;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--dim);
   cursor: pointer;
 }
 
-button:hover {
-  border-color: var(--accent);
+nav button:hover {
+  color: var(--accent);
 }
 
-button.on {
-  background: var(--accent);
-  color: #0d1017;
+nav button.on {
+  color: var(--fg);
+}
+
+/* ---- controls ------------------------------------------------------------- */
+
+button {
+  background: transparent;
+  color: var(--dim);
+  border: 1px solid var(--border);
+  border-radius: 0;
+  padding: 6px 14px;
+  font: inherit;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: color 0.12s, border-color 0.12s;
+}
+
+button:hover {
+  color: var(--fg);
+  border-color: var(--border-hover);
+}
+
+button.on,
+button.primary {
+  background: transparent;
+  color: var(--accent);
   border-color: var(--accent);
+  font-weight: 500;
+}
+
+button.primary:hover {
+  color: var(--bg);
+  background: var(--accent);
 }
 
 select,
+input[type='number'],
 input[type='range'] {
   font: inherit;
+  font-size: 13px;
   background: var(--panel);
   color: var(--fg);
-  border: 1px solid #2c313b;
-  border-radius: 6px;
-  padding: 3px 6px;
+  border: 1px solid var(--border);
+  border-radius: 0;
+  padding: 4px 6px;
+  max-width: 100%;
+  min-width: 0;
+}
+
+select:focus,
+input[type='number']:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+input[type='range'] {
+  padding: 0;
+  background: none;
+  border: 0;
+  accent-color: var(--accent);
+}
+
+input[type='checkbox'] {
+  accent-color: var(--accent);
 }
 
 .settings {
   margin-left: auto;
   display: flex;
-  gap: 16px;
+  gap: 20px;
   align-items: center;
-  font-size: 13px;
+  font-size: 12px;
   color: var(--dim);
 }
 
@@ -102,9 +201,14 @@ input[type='range'] {
 
 .devices,
 .error {
-  font-size: 13px;
-  color: var(--dim);
-  margin: 0 0 16px;
+  font-size: 12px;
+  color: var(--faint);
+  margin: 0 0 24px;
+}
+
+.devices .ps1 {
+  color: var(--accent);
+  margin-right: 8px;
 }
 
 .error {
@@ -113,35 +217,35 @@ input[type='range'] {
 
 .pedal-on {
   margin-left: 10px;
-  padding: 1px 7px;
-  border-radius: 4px;
+  padding: 1px 8px;
   background: var(--accent);
-  color: #0d1017;
+  color: var(--bg);
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
 
-/* ---- chord readout ---- */
+/* ---- chord readout -------------------------------------------------------- */
 
 .readout,
 .prompt {
   background: var(--panel);
-  border: 1px solid #2c313b;
-  border-radius: 10px;
-  padding: 14px 18px;
-  margin-bottom: 16px;
+  border: 1px solid var(--line);
+  border-radius: 0;
+  padding: 18px 20px;
+  margin-bottom: 20px;
 }
 
 .chord-symbol {
   font-size: 40px;
-  font-weight: 600;
-  line-height: 1.1;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
 }
 
 .voicing-name {
   color: var(--accent);
-  font-size: 16px;
+  font-size: 14px;
 }
 
 .alt-names,
@@ -150,44 +254,47 @@ input[type='range'] {
 .voicing-note,
 .hand-notes {
   color: var(--dim);
-  font-size: 13px;
-  margin: 2px 0 0;
+  font-size: 12px;
+  margin: 4px 0 0;
 }
 
 .note-list {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  color: var(--fg);
+  color: var(--fg-soft);
 }
 
-/* ---- drill ---- */
+/* ---- drill ---------------------------------------------------------------- */
 
 .controls {
   display: flex;
-  gap: 14px;
+  gap: 16px;
   align-items: center;
   flex-wrap: wrap;
-  margin-bottom: 14px;
+  margin-bottom: 20px;
+  font-size: 12px;
+  color: var(--dim);
 }
 
 fieldset.qualities {
-  border: 1px solid #2c313b;
-  border-radius: 6px;
-  padding: 2px 10px 6px;
+  border: 1px solid var(--border);
+  border-radius: 0;
+  padding: 4px 12px 8px;
   display: flex;
-  gap: 10px;
+  gap: 12px;
 }
 
 fieldset.qualities legend {
   font-size: 11px;
-  color: var(--dim);
-  padding: 0 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--faint);
+  padding: 0 6px;
 }
 
 .prompt {
   display: flex;
   align-items: baseline;
   gap: 16px;
-  border-left: 4px solid #2c313b;
+  border-left: 2px solid var(--border);
 }
 
 .prompt.correct {
@@ -200,7 +307,9 @@ fieldset.qualities legend {
 
 .verdict {
   margin-left: auto;
-  font-size: 14px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
   color: var(--dim);
 }
 
@@ -216,60 +325,75 @@ fieldset.qualities legend {
   display: flex;
   gap: 24px;
   flex-wrap: wrap;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
 }
 
 .stats,
 .legend,
 .per-key {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--dim);
-  margin-top: 12px;
+  margin-top: 20px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
 .per-key {
   display: block;
 }
 
+.per-key summary {
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.per-key summary:hover {
+  color: var(--accent);
+}
+
 .per-key ul {
   columns: 4;
   padding-left: 18px;
-  margin: 6px 0 0;
+  margin: 8px 0 0;
+}
+
+.per-key li::marker {
+  color: var(--accent);
 }
 
 .swatch {
-  width: 12px;
-  height: 12px;
-  border-radius: 3px;
+  width: 10px;
+  height: 10px;
   display: inline-block;
   margin-left: 8px;
 }
 
+/* The legend explains the key colours, so it uses the same deep ones. */
 .swatch.correct {
-  background: var(--ok);
+  background: var(--accent-deep);
 }
 
 .swatch.extra {
-  background: var(--bad);
+  background: var(--bad-deep);
 }
 
 .swatch.missing {
-  background: var(--miss);
+  background: transparent;
+  border: 2px dashed var(--accent-deep);
 }
 
-/* ---- staff (VexFlow draws black SVG) ---- */
+/* ---- staff (VexFlow draws dark ink on paper) ------------------------------ */
 
 .staff {
-  background: #f4f4f0;
-  border-radius: 8px;
+  background: #edede8;
+  border: 1px solid var(--border);
   display: inline-block;
   padding: 4px;
 }
 
-/* ---- keyboard ---- */
+/* ---- keyboard ------------------------------------------------------------- */
 
 .keyboard {
   width: 100%;
@@ -278,75 +402,169 @@ fieldset.qualities legend {
 }
 
 .key.white {
-  fill: #eceef2;
-  stroke: #14161a;
+  fill: var(--key-white);
+  stroke: #0b0b0c;
   stroke-width: 1;
 }
 
 .key.black {
-  fill: #23262d;
-  stroke: #14161a;
+  fill: var(--key-black);
+  stroke: #0b0b0c;
   stroke-width: 1;
 }
 
-.key.held {
-  fill: var(--accent);
-}
-
+.key.held,
 .key.correct {
-  fill: var(--ok);
+  fill: var(--accent-deep);
 }
 
 .key.extra {
-  fill: var(--bad);
+  fill: var(--bad-deep);
 }
 
 .key.missing {
-  stroke: var(--miss);
+  stroke: var(--accent-deep);
   stroke-width: 3;
   stroke-dasharray: 4 3;
 }
 
 .key-label {
-  fill: var(--dim);
+  fill: var(--faint);
   font-size: 11px;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--mono);
 }
 
 /* --- shred ---------------------------------------------------------------- */
 
 .shred {
   display: grid;
-  gap: 14px;
+  gap: 16px;
 }
 
+/* Control rig: the settings grouped by what they do, instead of one long
+   wrapping row where Exercise and Start sat at the same level. */
+.rig {
+  border: 1px solid var(--line);
+  background: var(--panel);
+}
+
+.rig-group {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  gap: 20px;
+  align-items: start;
+  padding: 14px 18px;
+}
+
+.rig-group + .rig-group {
+  border-top: 1px solid var(--line);
+}
+
+.rig-group h3 {
+  margin: 7px 0 0;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  color: var(--ghost);
+}
+
+.rig-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  align-items: end;
+}
+
+/* Label above the control: with a mono font, inline label + select in a
+   wrapping row is what made this hard to scan. */
+.rig-fields.stack > label {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.rig-fields.stack > label > span {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--faint);
+}
+
+.rig-fields.stack > label.wide {
+  flex: 1 1 260px;
+}
+
+.rig-fields button.field-action {
+  padding: 5px 12px;
+}
+
+.rig-transport {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 12px 18px;
+  border-top: 1px solid var(--line);
+  background: var(--bg);
+}
+
+.rig-transport button {
+  padding: 7px 22px;
+}
+
+@media (max-width: 640px) {
+  .rig-group {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .rig-group h3 {
+    margin: 0;
+  }
+  .rig-fields.stack > label.wide {
+    flex-basis: 100%;
+  }
+}
+
+/* Status strip, not a control: what is loaded, what it is for, where the
+   records stand. Everything you can change lives in a .rig. */
 .exercise-head {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
+  gap: 8px 20px;
+  flex-wrap: wrap;
+  padding: 2px 0 4px;
+}
+
+.exercise-head > div {
+  min-width: 0;
+}
+
+.exercise-head .tempo {
+  display: flex;
+  align-items: baseline;
   gap: 12px;
   flex-wrap: wrap;
+  font-size: 12.5px;
 }
 
 .badge {
   display: inline-block;
-  padding: 1px 7px;
+  padding: 1px 8px;
   margin-right: 6px;
-  border-radius: 999px;
-  background: var(--panel);
-  color: var(--dim);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--faint);
   font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
 }
 
 .exercise-head .focus {
-  color: var(--dim);
+  color: var(--faint);
 }
 
 .tempo .bpm {
   font-size: 22px;
-  font-weight: 600;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 
@@ -355,11 +573,11 @@ fieldset.qualities legend {
 }
 
 .tempo .bpm.countin {
-  color: var(--accent);
+  color: var(--accent-bright);
 }
 
 .tempo .pr {
-  color: var(--ok);
+  color: var(--accent);
 }
 
 .dim {
@@ -370,42 +588,48 @@ fieldset.qualities legend {
 .exercise-note {
   margin: 0;
   color: var(--dim);
-  font-size: 13px;
-  max-width: 70ch;
+  font-size: 12.5px;
+  line-height: 1.75;
+  max-width: 72ch;
+  text-wrap: pretty;
 }
 
 .exercise-note {
-  border-left: 3px solid var(--panel);
-  padding-left: 12px;
+  border-left: 2px solid var(--accent);
+  padding-left: 14px;
+  color: var(--faint);
 }
 
 .warn {
   margin: 0;
-  color: #e0a33a;
-  font-size: 13px;
+  color: var(--warn);
+  font-size: 12.5px;
 }
 
 /* Canvas and keyboard share the same usable width, so a note lands on its key. */
 .roll-stack {
   display: grid;
   gap: 0;
+  position: relative;
 }
 
 .piano-roll {
   display: block;
-  border-radius: 6px 6px 0 0;
+  border: 1px solid var(--line);
+  border-bottom: 0;
 }
 
 .verdict-bar {
   display: flex;
   align-items: baseline;
-  gap: 14px;
+  gap: 16px;
   flex-wrap: wrap;
-  padding: 10px 14px;
-  border-radius: 6px;
+  padding: 12px 16px;
   background: var(--panel);
-  border-left: 3px solid var(--miss);
-  min-height: 44px;
+  border: 1px solid var(--line);
+  border-left: 2px solid var(--border);
+  min-height: 46px;
+  font-size: 12.5px;
 }
 
 .verdict-bar.ok {
@@ -416,15 +640,29 @@ fieldset.qualities legend {
   border-left-color: var(--bad);
 }
 
+.verdict-bar strong {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 12px;
+}
+
+.verdict-bar.ok strong {
+  color: var(--ok);
+}
+
+.verdict-bar.fail strong {
+  color: var(--bad);
+}
+
 .verdict-bar .metric {
   color: var(--dim);
-  font-size: 13px;
+  font-size: 12.5px;
   font-variant-numeric: tabular-nums;
 }
 
 .verdict-bar .reasons {
   color: var(--bad);
-  font-size: 13px;
+  font-size: 12.5px;
   flex-basis: 100%;
 }
 
@@ -437,83 +675,87 @@ fieldset.qualities legend {
 }
 
 .rep-log span {
-  padding: 2px 7px;
-  border-radius: 4px;
-  background: var(--panel);
-  color: var(--dim);
+  padding: 2px 8px;
+  border: 1px solid var(--line);
+  color: var(--faint);
 }
 
 .rep-log span.ok {
   color: var(--ok);
+  border-color: color-mix(in srgb, var(--ok) 35%, transparent);
 }
 
 .rep-log span.fail {
   color: var(--bad);
+  border-color: color-mix(in srgb, var(--bad) 35%, transparent);
 }
 
 .diagnosis {
   background: var(--panel);
-  border-radius: 6px;
-  padding: 12px 16px;
+  border: 1px solid var(--line);
+  padding: 16px 18px;
 }
 
 .diagnosis h3 {
-  margin: 0 0 4px;
+  margin: 0 0 6px;
 }
 
 .diagnosis p {
-  margin: 0 0 8px;
-  font-size: 13px;
+  margin: 0 0 10px;
+  font-size: 12.5px;
 }
 
 .diagnosis ul {
   margin: 0;
   padding-left: 20px;
+  font-size: 12.5px;
   font-variant-numeric: tabular-nums;
+}
+
+.diagnosis li::marker {
+  color: var(--accent);
 }
 
 .shred-settings summary {
   cursor: pointer;
   color: var(--dim);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.shred-settings summary:hover {
+  color: var(--accent);
 }
 
 .shred-settings .controls {
-  margin-top: 10px;
+  margin-top: 14px;
   align-items: center;
-}
-
-button.primary {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #10131a;
-  font-weight: 600;
 }
 
 .badge.override {
   margin-left: 8px;
   margin-right: 0;
-  background: transparent;
-  border: 1px solid var(--accent);
+  border-color: var(--accent);
   color: var(--accent);
 }
 
 .verdict-bar .note-diff {
   flex-basis: 100%;
   color: var(--dim);
-  font-size: 13px;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 12.5px;
 }
 
 .tempo-picker {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
 }
 
 .tempo-picker button {
-  padding: 2px 10px;
+  padding: 1px 10px;
   font-size: 16px;
-  line-height: 1.1;
+  line-height: 1.2;
 }
 
 .tempo-picker input.bpm {
@@ -521,11 +763,11 @@ button.primary {
   padding: 2px 4px;
   background: transparent;
   border: none;
-  border-bottom: 1px dashed var(--dim);
+  border-bottom: 1px dashed var(--border-hover);
   border-radius: 0;
   color: inherit;
   font-size: 22px;
-  font-weight: 600;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
   text-align: right;
 }
@@ -538,8 +780,8 @@ button.primary {
 .tempo-slider {
   display: flex;
   align-items: center;
-  gap: 10px;
-  font-size: 13px;
+  gap: 12px;
+  font-size: 12.5px;
 }
 
 .tempo-slider input[type='range'] {
@@ -551,37 +793,26 @@ button.primary {
 .tempo-row {
   display: flex;
   align-items: center;
-  gap: 18px;
+  gap: 20px;
   flex-wrap: wrap;
 }
 
 .tempo-floor {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 13px;
+  gap: 8px;
+  font-size: 12.5px;
   color: var(--dim);
 }
 
 .tempo-floor input[type='number'] {
-  width: 4.5em;
-  font: inherit;
-  background: var(--panel);
-  color: var(--fg);
-  border: 1px solid #2c313b;
-  border-radius: 6px;
-  padding: 3px 6px;
+  width: 5em;
   font-variant-numeric: tabular-nums;
-}
-
-.tempo-floor input[type='number']:focus {
-  outline: none;
-  border-color: var(--accent);
 }
 
 .limits {
   margin: 0;
-  font-size: 13px;
+  font-size: 12.5px;
   color: var(--dim);
 }
 
@@ -594,7 +825,7 @@ button.primary {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 13px;
+  font-size: 12.5px;
   color: var(--dim);
 }
 
@@ -604,11 +835,12 @@ button.primary {
 
 .ramp-progress {
   margin: 0;
-  font-size: 13px;
+  font-size: 12.5px;
   color: var(--dim);
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .ramp-progress strong {
@@ -621,10 +853,6 @@ button.primary {
 }
 
 /* Locked: the line still reports, it just has no countdown to show. */
-.ramp-progress.locked {
-  color: var(--dim);
-}
-
 .ramp-progress.locked strong {
   color: var(--fg);
 }
@@ -635,10 +863,9 @@ button.primary {
 }
 
 .dot {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  border: 1px solid var(--dim);
+  width: 8px;
+  height: 8px;
+  border: 1px solid var(--border-hover);
 }
 
 .ramp-progress.up .dot.on {
@@ -649,11 +876,6 @@ button.primary {
 .ramp-progress.down .dot.on {
   background: var(--bad);
   border-color: var(--bad);
-}
-
-/* The piano roll takes the whole column; the notice sits on top of it. */
-.roll-stack {
-  position: relative;
 }
 
 .roll-announce,
@@ -671,9 +893,9 @@ button.primary {
   top: 28%;
   font-size: clamp(40px, 9vw, 104px);
   font-weight: 800;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.04em;
   font-variant-numeric: tabular-nums;
-  text-shadow: 0 4px 28px rgba(0, 0, 0, 0.75);
+  text-shadow: 0 4px 28px rgba(0, 0, 0, 0.85);
   animation: announce-in 220ms ease-out;
 }
 
@@ -695,10 +917,10 @@ button.primary {
 /* Advance warning: it disappears later, so it sits on top without covering the notes. */
 .roll-warn {
   top: 8px;
-  font-size: clamp(14px, 2.2vw, 22px);
+  font-size: clamp(13px, 2vw, 18px);
   font-weight: 700;
   color: var(--ok);
-  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.8);
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.85);
   animation: warn-pulse 1.6s ease-in-out infinite;
 }
 
@@ -710,11 +932,87 @@ button.primary {
 
 .audio-row {
   display: flex;
-  gap: 22px;
+  gap: 24px;
   flex-wrap: wrap;
   align-items: center;
 }
 
 .click-volume input[type='range']:disabled {
   opacity: 0.35;
+}
+
+/* ---- footer --------------------------------------------------------------- */
+
+.app footer {
+  margin-top: 56px;
+  padding-top: 24px;
+  border-top: 1px solid var(--line);
+  font-size: 12px;
+  line-height: 1.9;
+  color: var(--faint);
+}
+
+.app footer .ps1 {
+  color: var(--accent);
+  margin-right: 8px;
+}
+
+.app footer .done {
+  color: var(--ghost);
+}
+
+.caret {
+  display: inline-block;
+  width: 7px;
+  height: 12px;
+  background: var(--accent);
+  vertical-align: -2px;
+  margin-left: 6px;
+  animation: blink 1.6s steps(1) infinite;
+}
+
+@keyframes blink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .app {
+    padding: 20px 20px 56px;
+  }
+  .settings {
+    margin-left: 0;
+  }
+  /* Labels wrap their own control, so a long <select> shrinks instead of
+     pushing the page sideways. */
+  .controls,
+  .settings {
+    gap: 12px;
+  }
+  .controls label,
+  .settings label {
+    max-width: 100%;
+  }
+  .exercise-head > div:first-child {
+    max-width: 100%;
+  }
+  /* The roll and the keyboard are drawn at a fixed pitch width and scroll
+     together, so a note stays over its key. */
+  .roll-stack {
+    overflow-x: auto;
+  }
 }

@@ -1,6 +1,6 @@
-# Piano Jazz Trainer
+# keytrainer
 
-**Live: https://iuri1911.github.io/piano-jazz-personal/**
+**Live: https://keytrainer.iuri.io**
 
 MIDI piano practice: jazz voicings and shredding. The piano sound comes from your own keyboard — the app only synthesizes the metronome click, on the Shred tab.
 

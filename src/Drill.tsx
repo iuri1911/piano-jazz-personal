@@ -157,7 +157,7 @@ export function Drill({ settled, spelling }: Props) {
         </div>
         <div>
           <h3>Played</h3>
-          <Staff notes={settled} spelling={spelling} color={result === 'wrong' ? '#c0392b' : '#111'} />
+          <Staff notes={settled} spelling={spelling} color={result === 'wrong' ? '#b03a2c' : '#1c1c1a'} />
         </div>
       </div>
 

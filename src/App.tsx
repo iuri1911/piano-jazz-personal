@@ -4,6 +4,9 @@ import { Shred } from './shred/Shred'
 import { Keyboard, marksFromHeld } from './Keyboard'
 import { Staff } from './Staff'
 import { DEFAULT_SETTLE_MS, useMidi } from './midi'
+import '@fontsource/jetbrains-mono/400.css'
+import '@fontsource/jetbrains-mono/500.css'
+import '@fontsource/jetbrains-mono/700.css'
 import {
   chordLabel,
   detectChord,
@@ -23,16 +26,18 @@ export default function App() {
   return (
     <div className="app">
       <header>
-        <h1>Piano Jazz Trainer</h1>
+        <h1>
+          keytrainer<span className="caret" aria-hidden="true" />
+        </h1>
         <nav>
           <button className={tab === 'viz' ? 'on' : ''} onClick={() => setTab('viz')}>
-            Visualizer
+            [ visualizer ]
           </button>
           <button className={tab === 'drill' ? 'on' : ''} onClick={() => setTab('drill')}>
-            Drill
+            [ drill ]
           </button>
           <button className={tab === 'shred' ? 'on' : ''} onClick={() => setTab('shred')}>
-            Shred
+            [ shred ]
           </button>
         </nav>
         <div className="settings">
@@ -62,7 +67,8 @@ export default function App() {
         <p className="error">{error}</p>
       ) : (
         <p className="devices">
-          {devices.length ? `MIDI: ${devices.join(', ')}` : 'No MIDI device found.'}
+          <span className="ps1">iuri@keytrainer:~$</span>
+          {devices.length ? `midi — ${devices.join(', ')}` : 'midi — no device found'}
           {pedal && <span className="pedal-on">pedal</span>}
         </p>
       )}
@@ -71,6 +77,16 @@ export default function App() {
       {tab === 'drill' && <Drill settled={settled} spelling={spelling} />}
       {/* Shred subscribes to the raw events: a settled chord is no use for single notes. */}
       {tab === 'shred' && <Shred spelling={spelling} />}
+
+      <footer aria-hidden="true">
+        <div>
+          <span className="ps1">iuri@keytrainer:~$</span> exit
+        </div>
+        <div className="done">
+          [process completed]
+          <span className="caret" />
+        </div>
+      </footer>
     </div>
   )
 }

@@ -612,114 +612,122 @@ export function Shred({ spelling }: Props) {
 
   return (
     <div className="shred">
-      <div className="controls">
-        <label>
-          Exercise
-          <select value={exerciseId} onChange={(e) => persist({ exerciseId: e.target.value })}>
-            {([1, 2, 3, 4, 5] as Level[]).map((lvl) => (
-              <optgroup key={lvl} label={LEVEL_LABEL[lvl]}>
-                {EXERCISES.filter((e) => e.level === lvl).map((e) => (
-                  <option key={e.id} value={e.id}>
-                    {e.label}
+      <div className="rig">
+        <section className="rig-group">
+          <h3>Exercise</h3>
+          <div className="rig-fields stack">
+            <label className="wide">
+              <span>Pattern</span>
+              <select value={exerciseId} onChange={(e) => persist({ exerciseId: e.target.value })}>
+                {([1, 2, 3, 4, 5] as Level[]).map((lvl) => (
+                  <optgroup key={lvl} label={LEVEL_LABEL[lvl]}>
+                    {EXERCISES.filter((e) => e.level === lvl).map((e) => (
+                      <option key={e.id} value={e.id}>
+                        {e.label}
+                      </option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
+            </label>
+
+            <label>
+              <span>Key</span>
+              <select value={rootPc} onChange={(e) => persist({ rootPc: Number(e.target.value) })}>
+                {Array.from({ length: 12 }, (_, pc) => (
+                  <option key={pc} value={pc}>
+                    {pitchClassName(pc, spelling)}
                   </option>
                 ))}
-              </optgroup>
-            ))}
-          </select>
-        </label>
+              </select>
+            </label>
 
-        <label>
-          Key
-          <select value={rootPc} onChange={(e) => persist({ rootPc: Number(e.target.value) })}>
-            {Array.from({ length: 12 }, (_, pc) => (
-              <option key={pc} value={pc}>
-                {pitchClassName(pc, spelling)}
-              </option>
-            ))}
-          </select>
-        </label>
+            <label>
+              <span>Hands</span>
+              <select value={handMode} onChange={(e) => persist({ handMode: e.target.value })}>
+                {(Object.keys(HAND_MODE_LABEL) as HandMode[]).map((h) => (
+                  <option key={h} value={h}>
+                    {HAND_MODE_LABEL[h]}
+                  </option>
+                ))}
+              </select>
+            </label>
 
-        <label>
-          Hands
-          <select value={handMode} onChange={(e) => persist({ handMode: e.target.value })}>
-            {(Object.keys(HAND_MODE_LABEL) as HandMode[]).map((h) => (
-              <option key={h} value={h}>
-                {HAND_MODE_LABEL[h]}
-              </option>
-            ))}
-          </select>
-        </label>
+            <label>
+              <span>Order</span>
+              <select value={order} onChange={(e) => persist({ order: e.target.value })}>
+                <option value="fourths">Fourths</option>
+                <option value="chromatic">Chromatic</option>
+                <option value="random">Random</option>
+              </select>
+            </label>
 
-        <label>
-          Order
-          <select value={order} onChange={(e) => persist({ order: e.target.value })}>
-            <option value="fourths">Fourths</option>
-            <option value="chromatic">Chromatic</option>
-            <option value="random">Random</option>
-          </select>
-        </label>
-
-        <button
-          onClick={() => {
-            orderIndexRef.current += 1
-            persist({ rootPc: rootAt(order, orderIndexRef.current) })
-          }}
-        >
-          Next key
-        </button>
-
-        <label>
-          Strictness
-          <select
-            value={strictness}
-            onChange={(e) => persist({ strictness: e.target.value })}
-          >
-            {(Object.keys(STRICTNESS_LABEL) as Strictness[]).map((k) => (
-              <option key={k} value={k}>
-                {STRICTNESS_LABEL[k]}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label title="How many clean reps in a row raise the tempo. One bad rep resets the count. Set it to never to drill one tempo for as long as you like — the reps are still graded.">
-          Raise after
-          <select
-            value={range.advanceReps}
-            onChange={(e) =>
-              persist({ advanceReps: Number(e.target.value) })
-            }
-          >
-            <option value={1}>1 clean</option>
-            <option value={2}>2 clean</option>
-            <option value={3}>3 clean</option>
-            <option value={LOCKED}>never</option>
-          </select>
-        </label>
-
-        <label>
-          Mode
-          <select value={mode} onChange={(e) => persist({ mode: e.target.value })}>
-            {(Object.keys(MODE_LABEL) as Mode[]).map((m) => (
-              <option key={m} value={m}>
-                {MODE_LABEL[m]}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        {phase === 'idle' ? (
-          <>
-            <button onClick={listen}>Listen</button>
-            <button className="primary" onClick={start}>
-              Start
+            <button
+              className="field-action"
+              onClick={() => {
+                orderIndexRef.current += 1
+                persist({ rootPc: rootAt(order, orderIndexRef.current) })
+              }}
+            >
+              Next key
             </button>
-          </>
-        ) : (
-          <button className="primary" onClick={stop}>
-            Stop
-          </button>
-        )}
+          </div>
+        </section>
+
+        <section className="rig-group">
+          <h3>Protocol</h3>
+          <div className="rig-fields stack">
+            <label>
+              <span>Mode</span>
+              <select value={mode} onChange={(e) => persist({ mode: e.target.value })}>
+                {(Object.keys(MODE_LABEL) as Mode[]).map((m) => (
+                  <option key={m} value={m}>
+                    {MODE_LABEL[m]}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label>
+              <span>Strictness</span>
+              <select value={strictness} onChange={(e) => persist({ strictness: e.target.value })}>
+                {(Object.keys(STRICTNESS_LABEL) as Strictness[]).map((k) => (
+                  <option key={k} value={k}>
+                    {STRICTNESS_LABEL[k]}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label title="How many clean reps in a row raise the tempo. One bad rep resets the count. Set it to never to drill one tempo for as long as you like — the reps are still graded.">
+              <span>Raise after</span>
+              <select
+                value={range.advanceReps}
+                onChange={(e) => persist({ advanceReps: Number(e.target.value) })}
+              >
+                <option value={1}>1 clean</option>
+                <option value={2}>2 clean</option>
+                <option value={3}>3 clean</option>
+                <option value={LOCKED}>never</option>
+              </select>
+            </label>
+          </div>
+        </section>
+
+        <div className="rig-transport">
+          {phase === 'idle' ? (
+            <>
+              <button onClick={listen}>Listen</button>
+              <button className="primary" onClick={start}>
+                Start
+              </button>
+            </>
+          ) : (
+            <button className="primary" onClick={stop}>
+              Stop
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="exercise-head">
@@ -733,37 +741,10 @@ export function Shred({ spelling }: Props) {
           )}
         </div>
         <div className="tempo">
-          {mode === 'accel' ? (
-            // In accel the curve controls the tempo, not you.
-            <span className={`bpm ${phase}`}>{bpmNow} BPM</span>
-          ) : (
-            <span className="tempo-picker">
-              <button
-                onClick={() => setTempo(bpmRef.current - DEFAULT_RAMP.stepBpm)}
-                aria-label="lower tempo"
-              >
-                −
-              </button>
-              <input
-                className={`bpm ${phase}`}
-                type="number"
-                min={range.minBpm}
-                max={DEFAULT_RAMP.maxBpm}
-                step={1}
-                value={ramp.bpm}
-                onChange={(e) => setTempo(Number(e.target.value))}
-              />
-              <span className="dim">BPM</span>
-              <button
-                onClick={() => setTempo(bpmRef.current + DEFAULT_RAMP.stepBpm)}
-                aria-label="raise tempo"
-              >
-                +
-              </button>
-            </span>
-          )}
+          {/* In accel the curve controls the tempo, so there is nothing to set —
+              the reading lives here. Otherwise the picker sits in the Tempo group. */}
+          {mode === 'accel' && <span className={`bpm ${phase}`}>{bpmNow} BPM</span>}
           <span className="dim">
-            {' '}
             target {exercise.tempos.target} · {repBars} bar{repBars > 1 ? 's' : ''} per rep
           </span>
           {best > 0 && <span className="pr"> record {best}</span>}
@@ -771,77 +752,109 @@ export function Shred({ spelling }: Props) {
         </div>
       </div>
 
-      {mode !== 'accel' && (
-        <div className="tempo-row">
-          <label className="tempo-slider">
-            <input
-              type="range"
-              min={range.minBpm}
-              max={Math.max(DEFAULT_RAMP.maxBpm, exercise.tempos.target)}
-              step={1}
-              value={ramp.bpm}
-              onChange={(e) => setTempo(Number(e.target.value))}
-              aria-label="tempo"
-            />
-            <span className="dim">
-              {exercise.tempos.start} start · {exercise.tempos.target} target
-            </span>
-          </label>
-          <label
-            className="tempo-floor"
-            title="Lowest BPM the slider, the − button and the ladder can reach. Taking an arpeggio apart slowly wants a floor well under the default 40."
-          >
-            floor
-            <input
-              type="number"
-              min={ABS_MIN_BPM}
-              max={DEFAULT_RAMP.maxBpm - DEFAULT_RAMP.stepBpm}
-              step={5}
-              value={range.minBpm}
-              onChange={(e) => setFloor(Number(e.target.value))}
-            />
-            BPM
-          </label>
-        </div>
-      )}
+      <div className="rig">
+        {mode !== 'accel' && (
+          <section className="rig-group">
+            <h3>Tempo</h3>
+            <div className="rig-fields tempo-row">
+              <span className="tempo-picker">
+                <button
+                  onClick={() => setTempo(bpmRef.current - DEFAULT_RAMP.stepBpm)}
+                  aria-label="lower tempo"
+                >
+                  −
+                </button>
+                <input
+                  className={`bpm ${phase}`}
+                  type="number"
+                  min={range.minBpm}
+                  max={DEFAULT_RAMP.maxBpm}
+                  step={1}
+                  value={ramp.bpm}
+                  onChange={(e) => setTempo(Number(e.target.value))}
+                />
+                <span className="dim">BPM</span>
+                <button
+                  onClick={() => setTempo(bpmRef.current + DEFAULT_RAMP.stepBpm)}
+                  aria-label="raise tempo"
+                >
+                  +
+                </button>
+              </span>
+              <label className="tempo-slider">
+                <input
+                  type="range"
+                  min={range.minBpm}
+                  max={Math.max(DEFAULT_RAMP.maxBpm, exercise.tempos.target)}
+                  step={1}
+                  value={ramp.bpm}
+                  onChange={(e) => setTempo(Number(e.target.value))}
+                  aria-label="tempo"
+                />
+                <span className="dim">
+                  {exercise.tempos.start} start · {exercise.tempos.target} target
+                </span>
+              </label>
+              <label
+                className="tempo-floor"
+                title="Lowest BPM the slider, the − button and the ladder can reach. Taking an arpeggio apart slowly wants a floor well under the default 40."
+              >
+                floor
+                <input
+                  type="number"
+                  min={ABS_MIN_BPM}
+                  max={DEFAULT_RAMP.maxBpm - DEFAULT_RAMP.stepBpm}
+                  step={5}
+                  value={range.minBpm}
+                  onChange={(e) => setFloor(Number(e.target.value))}
+                />
+                BPM
+              </label>
+            </div>
+          </section>
+        )}
 
-      <div className="audio-row">
-        <label className="click-volume" title="Click volume. Does not affect the piano.">
-          click {Math.round(range.clickVolume * 100)}%
-          <input
-            type="range"
-            min={0}
-            max={100}
-            step={5}
-            value={Math.round(range.clickVolume * 100)}
-            onChange={(e) => {
-              const v = Number(e.target.value) / 100
-              persist({ clickVolume: v })
-              transportRef.current?.setVolume(v)
-            }}
-          />
-        </label>
+        <section className="rig-group">
+          <h3>Audio</h3>
+          <div className="rig-fields audio-row">
+            <label className="click-volume" title="Click volume. Does not affect the piano.">
+              click {Math.round(range.clickVolume * 100)}%
+              <input
+                type="range"
+                min={0}
+                max={100}
+                step={5}
+                value={Math.round(range.clickVolume * 100)}
+                onChange={(e) => {
+                  const v = Number(e.target.value) / 100
+                  persist({ clickVolume: v })
+                  transportRef.current?.setVolume(v)
+                }}
+              />
+            </label>
 
-        <label
-          className="click-volume"
-          title="The piano plays the exercise along with you, rep after rep — not only in Listen."
-        >
-          <input
-            type="checkbox"
-            checked={range.guide}
-            onChange={(e) => persist({ guide: e.target.checked })}
-          />
-          guide {Math.round(range.guideVolume * 100)}%
-          <input
-            type="range"
-            min={0}
-            max={100}
-            step={5}
-            value={Math.round(range.guideVolume * 100)}
-            disabled={!range.guide}
-            onChange={(e) => persist({ guideVolume: Number(e.target.value) / 100 })}
-          />
-        </label>
+            <label
+              className="click-volume"
+              title="The piano plays the exercise along with you, rep after rep — not only in Listen."
+            >
+              <input
+                type="checkbox"
+                checked={range.guide}
+                onChange={(e) => persist({ guide: e.target.checked })}
+              />
+              guide {Math.round(range.guideVolume * 100)}%
+              <input
+                type="range"
+                min={0}
+                max={100}
+                step={5}
+                value={Math.round(range.guideVolume * 100)}
+                disabled={!range.guide}
+                onChange={(e) => persist({ guideVolume: Number(e.target.value) / 100 })}
+              />
+            </label>
+          </div>
+        </section>
       </div>
 
       <p className="mode-help">

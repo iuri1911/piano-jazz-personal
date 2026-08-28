@@ -71,12 +71,13 @@ export function PianoRoll({
     canvas.height = ROLL_H * dpr
 
     const colors = {
-      bg: cssVar('--panel', '#1b1e24'),
-      dim: cssVar('--dim', '#7a8290'),
-      accent: cssVar('--accent', '#6ea8fe'),
-      ok: cssVar('--ok', '#35c48a'),
-      bad: cssVar('--bad', '#e5544b'),
-      miss: cssVar('--miss', '#5a6472'),
+      bg: cssVar('--panel', '#101011'),
+      dim: cssVar('--dim', '#8b8b83'),
+      accent: cssVar('--accent', '#9fe870'),
+      ok: cssVar('--ok', '#9fe870'),
+      bad: cssVar('--bad', '#e8705f'),
+      miss: cssVar('--miss', '#4a4a45'),
+      early: cssVar('--early', '#e0a33a'),
     }
 
     const pxPerBeat = ROLL_H / windowBeats
@@ -126,14 +127,14 @@ export function PianoRoll({
         ctx.strokeStyle = e.hand === 'l' ? colors.dim : colors.accent
         ctx.lineWidth = 2
         ctx.beginPath()
-        ctx.roundRect(x - w / 2, y - 9, w, 9, 3)
+        ctx.rect(x - w / 2, y - 9, w, 9)
         ctx.stroke()
 
         // Finger number. It sits on the note itself, not floating above it: with
         // sixteenths in two hands, a loose number turns into soup.
         if (showFingers && e.finger && y > 4 && y < ROLL_H) {
           ctx.fillStyle = e.hand === 'l' ? colors.dim : colors.accent
-          ctx.font = 'bold 13px ui-monospace, SFMono-Regular, monospace'
+          ctx.font = "bold 12px 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace"
           ctx.textAlign = 'center'
           ctx.textBaseline = 'middle'
           ctx.fillText(String(e.finger), x, y - 16)
@@ -160,7 +161,8 @@ export function PianoRoll({
         const x = layout.xOf(m.midi)
         if (!Number.isFinite(x)) continue
         const late = m.devMs
-        ctx.fillStyle = Math.abs(late) < 25 ? colors.ok : late > 0 ? colors.bad : colors.accent
+        // --ok and --accent are the same green now, so early gets its own colour.
+        ctx.fillStyle = Math.abs(late) < 25 ? colors.ok : late > 0 ? colors.bad : colors.early
         ctx.beginPath()
         ctx.arc(x, y - 4, 4, 0, Math.PI * 2)
         ctx.fill()
