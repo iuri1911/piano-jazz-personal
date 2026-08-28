@@ -1,4 +1,5 @@
-import type { PatternSpec } from './pattern'
+import { MAJOR_SCALE_FINGERING, MAJOR_TRIAD_ARPEGGIO_FINGERING, thumbOnWhite } from './fingering'
+import type { PatternSpec, Source } from './pattern'
 
 // THE LIBRARY. Single source of truth for the exercises — editing here changes
 // the whole app, same as the voicings table. Each entry says what it trains and
@@ -107,6 +108,24 @@ export type Exercise = {
 const C3 = 48
 const C4 = 60
 
+// Shapes shared between the pattern and its fingering, so the two cannot drift
+// apart: the fingering depends on WHICH degrees the shape has.
+const MINOR_PENTATONIC: Source = { kind: 'scale', name: 'minor pentatonic' }
+const BLUES: Source = { kind: 'scale', name: 'blues' }
+const WHOLE_TONE: Source = { kind: 'scale', name: 'whole tone' }
+const M7: Source = { kind: 'chord', name: 'm7' }
+const DIM7: Source = { kind: 'chord', name: 'dim7' }
+
+// Three notes, a leap, then the thumb: 1 2 3 1 2 in C, rotated in the keys
+// where that would land the thumb on a black key.
+const PENTATONIC_FINGERING = thumbOnWhite(MINOR_PENTATONIC, { fingers: [1, 2, 3, 1, 2] })
+const BLUES_FINGERING = thumbOnWhite(BLUES, { fingers: [1, 2, 3, 1, 2, 3] })
+const WHOLE_TONE_FINGERING = thumbOnWhite(WHOLE_TONE, { fingers: [1, 2, 3, 1, 2, 3] })
+// Seventh arpeggios: four fingers in order going up in the right hand, the
+// crossing on the thumb in the left. Same cycle in every key, different start.
+const M7_FINGERING = thumbOnWhite(M7, { fingers: [1, 2, 3, 4], lh: [1, 4, 3, 2] })
+const DIM7_FINGERING = thumbOnWhite(DIM7, { fingers: [1, 2, 3, 4], lh: [1, 4, 3, 2] })
+
 export const EXERCISES: Exercise[] = [
   // --- Level 1: foundation -------------------------------------------------
   {
@@ -165,7 +184,7 @@ export const EXERCISES: Exercise[] = [
     family: 'technique',
     level: 1,
     focus: 'Thumb crossing without an accent',
-    note: 'Fingering 1-2-3-5 going up. The classic mistake is the thumb hitting harder than the rest as the octave turns over — the app measures that. Think of rotating the forearm instead of stretching the thumb.',
+    note: 'Fingering 1-2-3-5 going up in C, and 4-1-2 on the black-key roots — the thumb does not go on a black key, so where the cycle starts changes with the tone. The classic mistake is the thumb hitting harder than the rest as the octave turns over — the app measures that. Think of rotating the forearm instead of stretching the thumb.',
     pattern: {
       source: { kind: 'chord', name: '' },
       motion: { kind: 'run' },
@@ -174,7 +193,7 @@ export const EXERCISES: Exercise[] = [
       direction: 'updown',
       subdivision: 3,
       anchorC: C3,
-      fingering: { kind: 'byDegree', fingers: [1, 2, 3], lh: [1, 4, 2] },
+      fingering: MAJOR_TRIAD_ARPEGGIO_FINGERING,
     },
     tempos: { start: 66, target: 144 },
     beatsPerBar: 4,
@@ -187,7 +206,7 @@ export const EXERCISES: Exercise[] = [
     family: 'technique',
     level: 2,
     focus: 'The thumb crossing at speed',
-    note: 'The most revealing exercise on the list. Almost everyone has a timing hole right after the thumb crosses, and the per-note reading shows exactly which degree it is. If the diagnosis keeps pointing at the same note, the problem is mechanical: prepare the thumb BEFORE, under the palm, instead of stretching for it at the last moment.',
+    note: 'The most revealing exercise on the list. Almost everyone has a timing hole right after the thumb crosses, and the per-note reading shows exactly which degree it is. If the diagnosis keeps pointing at the same note, the problem is mechanical: prepare the thumb BEFORE, under the palm, instead of stretching for it at the last moment. The numbers on screen follow the key: in C the right hand is 1 2 3 1 2 3 4, in F it is 1 2 3 4 1 2 3 (the 4 on the Bb) and in Bb it starts on 4 — the thumb does not go on a black key.',
     pattern: {
       source: { kind: 'scale', name: 'major' },
       motion: { kind: 'run' },
@@ -196,9 +215,9 @@ export const EXERCISES: Exercise[] = [
       direction: 'updown',
       subdivision: 4,
       anchorC: C3,
-      // Major scale: the left hand does not follow from the right by any formula —
-      // they are two different shapes that happen to close on the same octave.
-      fingering: { kind: 'byDegree', fingers: [1, 2, 3, 1, 2, 3, 4], lh: [1, 4, 3, 2, 1, 3, 2] },
+      // Major scale: the left hand does not follow from the right by any formula,
+      // and neither follows from the key — see fingering.ts.
+      fingering: MAJOR_SCALE_FINGERING,
     },
     tempos: { start: 80, target: 152 },
     beatsPerBar: 4,
@@ -209,16 +228,16 @@ export const EXERCISES: Exercise[] = [
     family: 'guitar',
     level: 2,
     focus: 'The guitar box translated to the keyboard',
-    note: 'A C D E G — the first pentatonic box, the one every guitarist plays. On the keyboard it does not fall under the hand the same way, which is why it is worth isolating: it alternates tone and third leaps, and the fingering changes every octave. Memorize the shape before speeding up.',
+    note: 'A C D E G — the first pentatonic box, the one every guitarist plays. On the keyboard it does not fall under the hand the same way, which is why it is worth isolating: it alternates tone and third leaps, and the fingering changes from key to key so the thumb stays off the black keys. Memorize the shape before speeding up.',
     pattern: {
-      source: { kind: 'scale', name: 'minor pentatonic' },
+      source: MINOR_PENTATONIC,
       motion: { kind: 'run' },
       hands: { kind: 'rh' },
       octaves: 2,
       direction: 'updown',
       subdivision: 4,
       anchorC: C3,
-      fingering: { kind: 'byDegree', fingers: [1, 2, 3, 1, 2] },
+      fingering: PENTATONIC_FINGERING,
     },
     tempos: { start: 84, target: 168 },
     beatsPerBar: 4,
@@ -231,14 +250,14 @@ export const EXERCISES: Exercise[] = [
     focus: 'Wide leap with a relaxed hand',
     note: 'Minor seventh arpeggio. Unlike a scale, here the hand OPENS — and the wrong reflex is to clench. Play with the arm carrying the hand, not with the finger stretching. This is the same chord you drill on the Drill tab, now laid out horizontally.',
     pattern: {
-      source: { kind: 'chord', name: 'm7' },
+      source: M7,
       motion: { kind: 'run' },
       hands: { kind: 'rh' },
       octaves: 2,
       direction: 'updown',
       subdivision: 4,
       anchorC: C3,
-      fingering: { kind: 'byDegree', fingers: [1, 2, 3, 4] },
+      fingering: M7_FINGERING,
     },
     tempos: { start: 80, target: 160 },
     beatsPerBar: 4,
@@ -253,14 +272,14 @@ export const EXERCISES: Exercise[] = [
     focus: 'The guitar shred pattern',
     note: '0123 1234 2345... In sixteenths this IS the generic rock lick — Zakk Wylde, Paul Gilbert, any fast pentatonic solo. Since the group has 4 notes and the beat has 4, the accent always lands in the same place: it is the easiest of the sequenced patterns to feel. Start here.',
     pattern: {
-      source: { kind: 'scale', name: 'minor pentatonic' },
+      source: MINOR_PENTATONIC,
       motion: { kind: 'shape', degrees: [0, 1, 2, 3], step: 1 },
       hands: { kind: 'rh' },
       octaves: 2,
       direction: 'updown',
       subdivision: 4,
       anchorC: C3,
-      fingering: { kind: 'byDegree', fingers: [1, 2, 3, 1, 2] },
+      fingering: PENTATONIC_FINGERING,
     },
     tempos: { start: 90, target: 176 },
     beatsPerBar: 4,
@@ -280,7 +299,7 @@ export const EXERCISES: Exercise[] = [
       direction: 'updown',
       subdivision: 4,
       anchorC: C3,
-      fingering: { kind: 'byDegree', fingers: [1, 2, 3, 1, 2, 3, 4] },
+      fingering: MAJOR_SCALE_FINGERING,
     },
     tempos: { start: 80, target: 152 },
     beatsPerBar: 4,
@@ -293,14 +312,14 @@ export const EXERCISES: Exercise[] = [
     focus: 'Pentatonic + b5 at speed',
     note: 'Minor pentatonic with the flat fifth in the middle. It is Keith Emerson\'s language in the fast sections of Rondo and Tarkus. The b5 is chromatic against its neighbours, so the fingering bunches up there — and that is where the timing slips.',
     pattern: {
-      source: { kind: 'scale', name: 'blues' },
+      source: BLUES,
       motion: { kind: 'run' },
       hands: { kind: 'rh' },
       octaves: 2,
       direction: 'updown',
       subdivision: 4,
       anchorC: C3,
-      fingering: { kind: 'byDegree', fingers: [1, 2, 3, 1, 2, 3] },
+      fingering: BLUES_FINGERING,
     },
     tempos: { start: 88, target: 176 },
     beatsPerBar: 4,
@@ -315,14 +334,14 @@ export const EXERCISES: Exercise[] = [
     focus: 'Symmetric shape: speed almost for free',
     note: 'The dim7 repeats the same hand shape every 3 semitones — there is no "hard position". That is why Emerson, Rudess and the Bach both of them took it from lean on it so heavily: it yields a lot of notes per unit of effort. Practise it in only four keys (C, Db, D, Eb): the other eight are the same.',
     pattern: {
-      source: { kind: 'chord', name: 'dim7' },
+      source: DIM7,
       motion: { kind: 'run' },
       hands: { kind: 'rh' },
       octaves: 3,
       direction: 'updown',
       subdivision: 4,
       anchorC: C3,
-      fingering: { kind: 'byDegree', fingers: [1, 2, 3, 4], lh: [1, 4, 3, 2] },
+      fingering: DIM7_FINGERING,
     },
     tempos: { start: 100, target: 200 },
     beatsPerBar: 4,
@@ -335,14 +354,14 @@ export const EXERCISES: Exercise[] = [
     focus: 'Constant fingering, no landmark',
     note: 'Six identical steps, not a semitone anywhere: the hand makes the same movement at any point. Easy to run, hard not to get lost in — with no half step there is nothing to anchor to. Good for raw speed and for a science-fiction soundtrack colour.',
     pattern: {
-      source: { kind: 'scale', name: 'whole tone' },
+      source: WHOLE_TONE,
       motion: { kind: 'run' },
       hands: { kind: 'rh' },
       octaves: 2,
       direction: 'updown',
       subdivision: 4,
       anchorC: C3,
-      fingering: { kind: 'byDegree', fingers: [1, 2, 3, 1, 2, 3] },
+      fingering: WHOLE_TONE_FINGERING,
     },
     tempos: { start: 100, target: 184 },
     beatsPerBar: 4,
@@ -375,14 +394,14 @@ export const EXERCISES: Exercise[] = [
     focus: 'Metric displacement',
     note: 'The shape has 5 notes, the click has 4 per beat: the start of the group walks through the bar and only returns to beat 1 after 5 beats. It is the Dream Theater metric trick. Watch the piano roll while you play — you can SEE the accent walking, and that is how you learn to feel it.',
     pattern: {
-      source: { kind: 'scale', name: 'minor pentatonic' },
+      source: MINOR_PENTATONIC,
       motion: { kind: 'shape', degrees: [0, 1, 2, 3, 4], step: 1 },
       hands: { kind: 'rh' },
       octaves: 2,
       direction: 'updown',
       subdivision: 4,
       anchorC: C3,
-      fingering: { kind: 'byDegree', fingers: [1, 2, 3, 1, 2] },
+      fingering: PENTATONIC_FINGERING,
     },
     tempos: { start: 76, target: 152 },
     beatsPerBar: 4,
@@ -397,7 +416,7 @@ export const EXERCISES: Exercise[] = [
     focus: 'Maximum speed with minimum effort',
     note: 'Every note of the scale comes out twice: right hand, then left hand an octave below. Since each hand plays half the notes, you can reach tempos one hand alone cannot — this is how the fast ELP passages get played without destroying the forearm. Hands close together, small movements. No fingering on screen: with the hands alternating note by note, the finger depends on where the hand is arriving, not on the note — use 2 or 3 and let the forearm rotate.',
     pattern: {
-      source: { kind: 'scale', name: 'minor pentatonic' },
+      source: MINOR_PENTATONIC,
       motion: { kind: 'shape', degrees: [0, 0], step: 1 },
       hands: { kind: 'alternate', unit: 1, lhOctaveShift: -1 },
       octaves: 2,
@@ -438,7 +457,7 @@ export const EXERCISES: Exercise[] = [
     focus: 'Real independence between the hands',
     note: 'The left hand repeats two notes per bar while the right runs in sixteenths. Real independence: the left has to become automatic to the point where you forget about it. If the right starts dragging the left into its rhythm, take the BPM back down. No fingering on screen: the two hands are doing different things at once and each one wants its own.',
     pattern: {
-      source: { kind: 'scale', name: 'minor pentatonic' },
+      source: MINOR_PENTATONIC,
       motion: { kind: 'shape', degrees: [0, 1, 2, 3], step: 1 },
       // -1 and not -2: with the right hand at C4 and a two-octave pattern, dropping
       // the left two octaves runs off the bottom of a 49-key controller outside C.

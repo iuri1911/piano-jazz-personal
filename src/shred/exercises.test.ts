@@ -232,7 +232,11 @@ describe('fingering', () => {
     for (const e of EXERCISES) {
       const f = e.pattern.fingering
       if (!f) continue
-      for (const d of [...f.fingers, ...(f.lh ?? [])]) {
+      const perKey = Object.values(f.byRoot ?? {}).flatMap((k) => [
+        ...(k?.fingers ?? []),
+        ...(k?.lh ?? []),
+      ])
+      for (const d of [...f.fingers, ...(f.lh ?? []), ...perKey]) {
         expect(d, `${e.id}: finger ${d}`).toBeGreaterThanOrEqual(1)
         expect(d, `${e.id}: finger ${d}`).toBeLessThanOrEqual(5)
       }
@@ -249,6 +253,10 @@ describe('fingering', () => {
         `${e.id}: ${f.fingers.length} fingers for ${degrees} degrees`,
       ).toBe(degrees)
       if (f.lh) expect(f.lh.length, e.id).toBe(degrees)
+      for (const [pc, k] of Object.entries(f.byRoot ?? {})) {
+        if (k?.fingers) expect(k.fingers.length, `${e.id} em pc ${pc}`).toBe(degrees)
+        if (k?.lh) expect(k.lh.length, `${e.id} em pc ${pc}`).toBe(degrees)
+      }
     }
   })
 
@@ -273,5 +281,97 @@ describe('fingering', () => {
     const lh = expandPattern(applyHandMode(scale.pattern, 'lh'), 0, RANGE).notes
     expect(rh.slice(0, 7).map((n) => n.finger)).toEqual([1, 2, 3, 1, 2, 3, 4])
     expect(lh.slice(0, 7).map((n) => n.finger)).toEqual([1, 4, 3, 2, 1, 3, 2])
+  })
+
+  it('major scale: the fingering changes with the key, F is not the same as C', () => {
+    const scale = EXERCISE_BY_ID.get('major-scale-2oct')!
+    const rhIn = (pc: number) =>
+      expandPattern(applyHandMode(scale.pattern, 'rh'), pc, RANGE)
+        .notes.slice(0, 7)
+        .map((n) => n.finger)
+    const lhIn = (pc: number) =>
+      expandPattern(applyHandMode(scale.pattern, 'lh'), pc, RANGE)
+        .notes.slice(0, 7)
+        .map((n) => n.finger)
+
+    // F: 4 on the Bb, thumb crossing one degree later than in C.
+    expect(rhIn(5)).toEqual([1, 2, 3, 4, 1, 2, 3])
+    expect(lhIn(5)).toEqual([1, 4, 3, 2, 1, 3, 2]) // left hand as in C
+    // Bb starts on 4, Eb on 3, Ab on 3, Db on 2, Gb on 2: the thumb avoids the black key.
+    expect(rhIn(10)).toEqual([4, 1, 2, 3, 1, 2, 3])
+    expect(rhIn(3)).toEqual([3, 1, 2, 3, 4, 1, 2])
+    expect(rhIn(1)).toEqual([2, 3, 1, 2, 3, 4, 1])
+    // B: right hand as in C, left hand its own.
+    expect(rhIn(11)).toEqual([1, 2, 3, 1, 2, 3, 4])
+    expect(lhIn(11)).toEqual([1, 3, 2, 1, 4, 3, 2])
+  })
+
+  it('no key would be better served by starting the cycle elsewhere', () => {
+    // The rule behind every fingering table: the thumb does not go on a black
+    // key. Where one lands on black — Gb triad, Eb pentatonic — it is because
+    // the shape has no white note to put it on, not because the table is stale.
+    const white = new Set([0, 2, 4, 5, 7, 9, 11])
+    const onWhite = (list: number[], steps: number[], pc: number) =>
+      list.filter((f, d) => f === 1 && white.has((pc + steps[d]) % 12)).length
+
+    for (const e of EXERCISES) {
+      const f = e.pattern.fingering
+      if (!f || f.kind !== 'byDegree') continue
+      const steps = sourceSteps(e.pattern.source)
+      for (let pc = 0; pc < 12; pc++) {
+        const perKey = f.byRoot?.[pc]
+        for (const list of [perKey?.fingers ?? f.fingers, perKey?.lh ?? f.lh]) {
+          if (!list) continue
+          const n = list.length
+          const chosen = onWhite(list, steps, pc)
+          for (let r = 1; r < n; r++) {
+            const rotated = list.map((_, d) => list[(((d - r) % n) + n) % n])
+            expect(
+              onWhite(rotated, steps, pc),
+              `${e.id} em pc ${pc}: ${rotated.join('')} puts the thumb on more white keys than ${list.join('')}`,
+            ).toBeLessThanOrEqual(chosen)
+          }
+        }
+      }
+    }
+  })
+
+  it('arpeggios follow the published charts, key by key', () => {
+    const at = (id: string, pc: number) => EXERCISE_BY_ID.get(id)!.pattern.fingering!.byRoot![pc]!
+
+    // Major triad: the chart gives Bb right hand 4 1 2 and left hand 3 2 1.
+    expect(at('broken-triad', 0)).toEqual({ fingers: [1, 2, 3], lh: [1, 4, 2] }) // C
+    expect(at('broken-triad', 10)).toEqual({ fingers: [4, 1, 2], lh: [3, 2, 1] }) // Bb
+    expect(at('broken-triad', 2).lh).toEqual([1, 3, 2]) // D: 3 on the black third
+
+    // Seventh arpeggios: the thumb on the white note, and the two hands are
+    // allowed to disagree about which one — Bbm7 has only the F.
+    expect(at('seventh-arpeggio', 0)).toEqual({ fingers: [1, 2, 3, 4], lh: [1, 4, 3, 2] }) // Cm7
+    expect(at('seventh-arpeggio', 10)).toEqual({ fingers: [3, 4, 1, 2], lh: [3, 2, 1, 4] }) // Bbm7
+    expect(at('seventh-arpeggio', 1).lh).toEqual([4, 3, 2, 1]) // Dbm7: left thumb on the B
+    expect(at('dim7-arpeggio', 1)).toEqual({ fingers: [4, 1, 2, 3], lh: [3, 2, 1, 4] }) // Db dim7
+  })
+
+  it('pentatonic, blues and whole tone rotate instead of keeping the C shape', () => {
+    const at = (id: string, pc: number) => EXERCISE_BY_ID.get(id)!.pattern.fingering!.byRoot![pc]!
+    expect(at('pentatonic-box', 0).fingers).toEqual([1, 2, 3, 1, 2]) // C: as written
+    expect(at('pentatonic-box', 1).fingers).toEqual([2, 1, 2, 3, 1]) // Db: thumbs on E and B
+    expect(at('blues-run', 2).fingers).toEqual([3, 1, 2, 3, 1, 2]) // D: thumbs on F and A
+    expect(at('whole-tone', 1).fingers).toEqual([2, 3, 1, 2, 3, 1]) // Db: thumbs on F and B
+  })
+
+  it('the thumb never lands on a black key in the major scale', () => {
+    const scale = EXERCISE_BY_ID.get('major-scale-2oct')!
+    const black = new Set([1, 3, 6, 8, 10])
+    for (let pc = 0; pc < 12; pc++) {
+      for (const mode of ['rh', 'lh'] as const) {
+        for (const n of expandPattern(applyHandMode(scale.pattern, mode), pc, RANGE).notes) {
+          if (n.finger !== 1) continue
+          expect(black.has(((n.midi % 12) + 12) % 12), `${mode} em pc ${pc}: ${n.midi}`).toBe(
+            false,
+          )
+        }
+      }
+    }
   })
 })

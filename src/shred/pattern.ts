@@ -57,6 +57,13 @@ export type Fingering = {
    * which beats a wrong one.
    */
   lh?: number[]
+  /**
+   * Fingering is not the same in every key: the thumb does not go on a black
+   * key, so the crossing point moves. F major is the classic case — the right
+   * hand is 1 2 3 4 1 2 3, not the 1 2 3 1 2 3 4 of C. Keyed by pitch class of
+   * the root; whatever is not listed falls back to `fingers`/`lh`.
+   */
+  byRoot?: Partial<Record<number, { fingers?: number[]; lh?: number[] }>>
 }
 
 export type PatternSpec = {
@@ -189,13 +196,16 @@ function applyDirection(
 
 function fingerFor(
   fingering: Fingering | undefined,
+  rootPc: number,
   degree: number,
   position: number,
   n: number,
   hand: 'l' | 'r',
 ) {
   if (!fingering) return undefined
-  const list = hand === 'l' ? fingering.lh : fingering.fingers
+  const perKey = fingering.byRoot?.[((rootPc % 12) + 12) % 12]
+  const list =
+    hand === 'l' ? (perKey?.lh ?? fingering.lh) : (perKey?.fingers ?? fingering.fingers)
   if (!list || !list.length) return undefined
   return fingering.kind === 'byDegree'
     ? list[((degree % n) + n) % n % list.length]
@@ -256,7 +266,8 @@ function build(spec: PatternSpec, rootPc: number, octaves: number): ExpectedNote
   seq.forEach((degree, i) => {
     const beat = i / spec.subdivision
     const midi = root + degreeSemitone(steps, degree)
-    const finger = (hand: 'l' | 'r') => fingerFor(spec.fingering, degree, i, steps.length, hand)
+    const finger = (hand: 'l' | 'r') =>
+      fingerFor(spec.fingering, rootPc, degree, i, steps.length, hand)
 
     switch (h.kind) {
       case 'rh':
