@@ -21,12 +21,26 @@ export function pitchClassName(pc: number, spelling: Spelling = 'flat'): string 
   return (spelling === 'sharp' ? PITCH_CLASSES_SHARP : PITCH_CLASSES_FLAT)[((pc % 12) + 12) % 12]
 }
 
+/**
+ * Drops tonal's explicit major marker: a plain major triad is written "C", not "CM".
+ *
+ * Only the bare marker goes. An "M" followed by a digit is a different quality
+ * (M7 is a major seventh, not a triad), and the lowercase "m" of a minor chord
+ * and the "maj" of "Cmaj7" must survive untouched.
+ *
+ * Applies to inversions ("CM/E") and to extensions written on the triad
+ * ("CMadd9"), because the marker sits right after the root in both.
+ */
+function dropMajorMarker(name: string): string {
+  return name.replace(/^([A-G][#b]*)M(?![0-9])/, '$1')
+}
+
 /** Possible chord names, likeliest first. Empty when nothing is recognized. */
 export function detectChord(midi: number[], spelling: Spelling = 'flat'): string[] {
   if (midi.length < 2) return []
   const sorted = [...midi].sort((a, b) => a - b)
   const names = sorted.map((n) => midiToName(n, spelling))
-  return Chord.detect(names, { assumePerfectFifth: true })
+  return Chord.detect(names, { assumePerfectFifth: true }).map(dropMajorMarker)
 }
 
 /** Intervals from the lowest note, e.g. ['1P', '3m', '5P', '7m']. */

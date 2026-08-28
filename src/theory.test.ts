@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import { VOICING_BY_ID, VOICINGS, degreeToSemitones, voicingToMidi, voicingShape } from './voicings'
-import { compareToTarget, detectVoicing, midiToName, midiToVexKey, sameSet } from './theory'
+import {
+  compareToTarget,
+  detectChord,
+  detectVoicing,
+  midiToName,
+  midiToVexKey,
+  sameSet,
+} from './theory'
 import { applyMidiMessage, newKeys, sounding } from './midi'
 
 const C3 = 48
@@ -231,5 +238,48 @@ describe('names', () => {
     expect(midiToVexKey(63)).toBe('eb/4')
     expect(midiToVexKey(60)).toBe('c/4')
     expect(midiToVexKey(61, 'sharp')).toBe('c#/4')
+  })
+})
+
+describe('major chord naming', () => {
+  // tonal writes the major triad as "CM"; on screen it is just "C".
+  const first = (midi: number[]) => detectChord(midi)[0]
+
+  it('drops the major marker from the triad', () => {
+    expect(first([C3, C3 + 4, C3 + 7])).toBe('C')
+  })
+
+  // Not necessarily the first reading — tonal ranks Em#5 above it — but the
+  // slash name it does offer must carry the bass and no marker.
+  it('drops it on an inversion, keeping the bass', () => {
+    expect(detectChord([C3 + 4, C3 + 7, C3 + 12])).toContain('C/E')
+    expect(detectChord([C3 + 7, C3 + 12, C3 + 16])).toContain('C/G')
+  })
+
+  it('drops it on an extension written over the triad', () => {
+    expect(detectChord([C3, C3 + 2, C3 + 4, C3 + 7])).toContain('Cadd9')
+  })
+
+  it('works off a flat root', () => {
+    const bb2 = C3 - 2
+    expect(first([bb2, bb2 + 4, bb2 + 7])).toBe('Bb')
+  })
+
+  // The marker only goes when it means "plain major". These must survive.
+  it('leaves the minor triad alone', () => {
+    expect(first([C3, C3 + 3, C3 + 7])).toBe('Cm')
+  })
+
+  it('leaves maj7 alone', () => {
+    expect(first([C3, C3 + 4, C3 + 7, C3 + 11])).toBe('Cmaj7')
+  })
+
+  it('leaves the dominant seventh alone', () => {
+    expect(first([C3, C3 + 4, C3 + 7, C3 + 10])).toBe('C7')
+  })
+
+  it('leaves augmented and diminished alone', () => {
+    expect(first([C3, C3 + 4, C3 + 8])).toBe('Caug')
+    expect(first([C3, C3 + 3, C3 + 6])).toBe('Cdim')
   })
 })
