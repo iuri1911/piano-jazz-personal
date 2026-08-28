@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import type { MidiEvent } from '../midi'
+import { instrument } from '../instrument'
 
 // Input from the computer keyboard.
 //
@@ -55,27 +56,30 @@ export function useComputerKeyboard(
       // OS autorepeat would send dozens of note-ons for the same held key.
       if (down.current.has(e.code)) return
       down.current.add(e.code)
-      cb.current({
-        kind: 'on',
-        note: base.current + offset + shift.octaves * 12,
-        velocity: 80,
-        time: performance.now(),
-      })
+      const note = base.current + offset + shift.octaves * 12
+      // Straight to the instrument: these never reach the MIDI fan-out, so the
+      // app's own voice would otherwise stay silent for computer-keyboard input.
+      instrument.play('on', note, 80)
+      cb.current({ kind: 'on', note, velocity: 80, time: performance.now() })
     }
 
     const keyUp = (e: KeyboardEvent) => {
       const offset = LAYOUT[e.code]
       if (offset === undefined || !down.current.delete(e.code)) return
-      cb.current({
-        kind: 'off',
-        note: base.current + offset + shift.octaves * 12,
-        velocity: 0,
-        time: performance.now(),
-      })
+      const note = base.current + offset + shift.octaves * 12
+      instrument.play('off', note)
+      cb.current({ kind: 'off', note, velocity: 0, time: performance.now() })
     }
 
     // Switching tabs with a key held down would leave the note stuck forever.
-    const blur = () => down.current.clear()
+    const blur = () => {
+      // Otherwise the note is stuck down AND stuck sounding.
+      for (const code of down.current) {
+        const offset = LAYOUT[code]
+        if (offset !== undefined) instrument.play('off', base.current + offset + shift.octaves * 12)
+      }
+      down.current.clear()
+    }
 
     window.addEventListener('keydown', keyDown)
     window.addEventListener('keyup', keyUp)

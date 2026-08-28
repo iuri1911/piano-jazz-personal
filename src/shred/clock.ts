@@ -6,6 +6,9 @@
 // the clicks on the audio clock, which is precise. Nothing sounds at the moment
 // the timer fires.
 
+import { getAudioContext, getMasterBus } from '../audio'
+import { schedulePianoTone } from '../instrument'
+
 const LOOKAHEAD_MS = 25
 const SCHEDULE_AHEAD_S = 0.1
 
@@ -126,10 +129,12 @@ export class Transport {
 
   private ensureCtx(): AudioContext {
     if (!this.ctx) {
-      this.ctx = new AudioContext()
+      // Shared with the instrument: the grading grid is built on this clock, so a
+      // second context would put what you play on a timeline of its own.
+      this.ctx = getAudioContext()
       this.clickGain = this.ctx.createGain()
       this.clickGain.gain.value = this.volume
-      this.clickGain.connect(this.ctx.destination)
+      this.clickGain.connect(getMasterBus())
     }
     return this.ctx
   }
@@ -187,41 +192,15 @@ export class Transport {
   /**
    * Synthesized note, to demonstrate the exercise before you play it.
    *
-   * It is not a sampled piano — it is two oscillators with an exponential decay.
-   * What matters here is audible pitch and rhythm to memorize the shape; loading
-   * megabytes of samples for that does not pay for itself.
+   * Uses the same piano voice the keyboard plays through, so the demonstration
+   * and your own playing are the same instrument answering itself. Still
+   * synthesized, not sampled: megabytes of samples do not pay for themselves when
+   * what this has to convey is pitch and rhythm.
    */
   note(midi: number, atAudio: number, durS: number, gain = 0.16): void {
     const ctx = this.ctx
     if (!ctx) return
-    const freq = 440 * 2 ** ((midi - 69) / 12)
-    const env = ctx.createGain()
-    env.connect(ctx.destination)
-
-    // Fundamental with body + a weak octave on top: gives the attack its edge
-    // without turning into a square wave.
-    const body = ctx.createOscillator()
-    body.type = 'triangle'
-    body.frequency.value = freq
-    const shine = ctx.createOscillator()
-    shine.type = 'sine'
-    shine.frequency.value = freq * 2
-
-    const shineGain = ctx.createGain()
-    shineGain.gain.value = 0.3
-    shine.connect(shineGain)
-    shineGain.connect(env)
-    body.connect(env)
-
-    const end = atAudio + durS
-    env.gain.setValueAtTime(0.0001, atAudio)
-    env.gain.exponentialRampToValueAtTime(gain, atAudio + 0.004)
-    env.gain.exponentialRampToValueAtTime(0.0001, end)
-
-    for (const osc of [body, shine]) {
-      osc.start(atAudio)
-      osc.stop(end + 0.02)
-    }
+    schedulePianoTone(ctx, getMasterBus(), midi, atAudio, durS, gain)
   }
 
   private click(time: number, freq: number, gain: number): void {

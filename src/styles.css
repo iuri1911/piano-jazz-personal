@@ -199,6 +199,17 @@ input[type='checkbox'] {
   gap: 6px;
 }
 
+/* The app's own voice. First in the row because it is the one setting someone
+   reaches for every session — on when practising alone, off when a real synth
+   is already making the sound. */
+.settings .sound select {
+  font-size: 12px;
+}
+
+.settings .sound input[type='range'] {
+  width: 72px;
+}
+
 .devices,
 .error {
   font-size: 12px;

@@ -2,7 +2,9 @@
 
 **Live: https://keytrainer.iuri.io**
 
-MIDI piano practice: jazz voicings and shredding. The piano sound comes from your own keyboard — the app only synthesizes the metronome click, on the Shred tab.
+MIDI piano practice: jazz voicings and shredding.
+
+The app has its own voice, so it makes sound on its own without a synth or a DAW open: a **lead** (warm, deliberately capped in brightness — it plays under an exercise for a long stretch) and a **piano** (struck partials with separate decays, damper on the sustain pedal). Both are synthesized, nothing is downloaded. Pick one — or **off**, to let your own module make the sound — next to `sound` in the header.
 
 To run locally:
 

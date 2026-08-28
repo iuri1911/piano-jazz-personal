@@ -1,4 +1,13 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { armAudioResume, resumeAudio } from './audio'
+import {
+  VOICE_HELP,
+  VOICE_LABEL,
+  instrument,
+  loadSound,
+  saveSound,
+  type Voice,
+} from './instrument'
 import { Drill } from './Drill'
 import { Shred } from './shred/Shred'
 import { Keyboard, marksFromHeld } from './Keyboard'
@@ -21,7 +30,26 @@ export default function App() {
   const [tab, setTab] = useState<'viz' | 'drill' | 'shred'>('viz')
   const [spelling, setSpelling] = useState<Spelling>('flat')
   const [settleMs, setSettleMs] = useState(DEFAULT_SETTLE_MS)
+  const [sound, setSound] = useState(loadSound)
   const { held, settled, pedal, devices, error } = useMidi(settleMs)
+
+  // The instrument listens to the keyboard on every tab: you play in all three.
+  useEffect(() => {
+    instrument.connect()
+    armAudioResume()
+    return () => instrument.disconnect()
+  }, [])
+
+  useEffect(() => {
+    instrument.setVoice(sound.voice)
+    instrument.setLevel(sound.level)
+  }, [sound])
+
+  const changeSound = (patch: Partial<typeof sound>) => {
+    // Picking a voice is a gesture, which is the browser's cue to let audio start.
+    void resumeAudio()
+    setSound((prev) => saveSound({ ...prev, ...patch }))
+  }
 
   return (
     <div className="app">
@@ -41,6 +69,29 @@ export default function App() {
           </button>
         </nav>
         <div className="settings">
+          <label className="sound" title={VOICE_HELP[sound.voice]}>
+            sound
+            <select
+              value={sound.voice}
+              onChange={(e) => changeSound({ voice: e.target.value as Voice })}
+            >
+              {(Object.keys(VOICE_LABEL) as Voice[]).map((v) => (
+                <option key={v} value={v}>
+                  {VOICE_LABEL[v]}
+                </option>
+              ))}
+            </select>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              step={5}
+              value={Math.round(sound.level * 100)}
+              disabled={sound.voice === 'off'}
+              aria-label="instrument volume"
+              onChange={(e) => changeSound({ level: Number(e.target.value) / 100 })}
+            />
+          </label>
           <label>
             <input
               type="checkbox"
