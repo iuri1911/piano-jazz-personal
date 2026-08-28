@@ -21,6 +21,7 @@ import { PianoRoll, type PlayedMark } from './PianoRoll'
 import {
   ABS_MIN_BPM,
   DEFAULT_RAMP,
+  LOCKED,
   MODE_HELP,
   MODE_LABEL,
   bpmAtBeat,
@@ -52,6 +53,24 @@ import { QWERTY_HELP, useComputerKeyboard } from './qwerty'
  */
 const GRACE_BEATS = 0.25
 const graceMs = (bpm: number) => (60000 / bpm) * GRACE_BEATS
+
+/**
+ * How far before the end of the rep the boundary with the next one sits, in beats.
+ *
+ * The exercise loops, so the next rep's first note lands exactly on repEnd. A
+ * trailing grace therefore swallowed it: counted "extra" here, and — because the
+ * window is also what gets discarded — "missing" over there, on every rep after
+ * the first. Two guaranteed errors a rep, which is more than the whole budget of a
+ * short exercise: the broken triad has 12 notes and a budget of 1, so playing it
+ * perfectly failed every time.
+ *
+ * The cut belongs halfway between the last onset of this rep and the first of the
+ * next, never further out than GRACE_BEATS. Both reps use the same cut, so every
+ * note is graded exactly once.
+ */
+export function boundaryBeats(repBeats: number, lastBeat: number): number {
+  return Math.min(GRACE_BEATS, Math.max(0, (repBeats - lastBeat) / 2))
+}
 /** How many reps accel mode takes to go from the start tempo to the target. */
 const ACCEL_REPS = 8
 
@@ -141,8 +160,21 @@ export function Shred({ spelling }: Props) {
 
   const strictness = (range.strictness ?? 'standard') as Strictness
   const tolerance = toleranceFor(exercise.level, strictness)
+  /**
+   * Tempo locked: the reps are still graded, the verdict and the records still
+   * come, only the automatic move stops. Drilling one tempo until it is yours is
+   * a normal way to practise, and the ladder deciding for you gets in the way.
+   * Both directions freeze — a floor that drops on two bad reps is not "one tempo".
+   */
+  const tempoLocked = range.advanceReps === LOCKED
   const rampConfig = useMemo(
-    () => ({ ...DEFAULT_RAMP, repsToAdvance: range.advanceReps, minBpm: range.minBpm }),
+    () => ({
+      ...DEFAULT_RAMP,
+      // The ladder is never consulted while locked; keep the config sane anyway so
+      // the dots and the targets have something to render.
+      repsToAdvance: Math.max(1, range.advanceReps),
+      minBpm: range.minBpm,
+    }),
     [range.advanceReps, range.minBpm],
   )
   const rampConfigRef = useRef(rampConfig)
@@ -153,13 +185,19 @@ export function Shred({ spelling }: Props) {
   // 0.28 is the ceiling: above that the guide drowns out the real keyboard.
   const guideGain = range.guideVolume * 0.28
 
+  /** Last onset of the rep. The boundary with the next rep hangs off it. */
+  const lastBeat = useMemo(
+    () => expansion.notes.reduce((m, n) => Math.max(m, n.beat), 0),
+    [expansion],
+  )
+
   const cfgRef = useRef({
-    exercise, expansion, repBeats, cycleBeats, mode, rootPc, strictness,
-    guide: range.guide, guideGain,
+    exercise, expansion, repBeats, cycleBeats, mode, rootPc, strictness, lastBeat,
+    tempoLocked, guide: range.guide, guideGain,
   })
   cfgRef.current = {
-    exercise, expansion, repBeats, cycleBeats, mode, rootPc, strictness,
-    guide: range.guide, guideGain,
+    exercise, expansion, repBeats, cycleBeats, mode, rootPc, strictness, lastBeat,
+    tempoLocked, guide: range.guide, guideGain,
   }
 
   const expectedBeats = useMemo(
@@ -225,10 +263,12 @@ export function Shred({ spelling }: Props) {
 
       // Grace proportional to the tempo. A fixed value in ms was the flaw: at
       // 80 BPM a beat is 750ms, and 120ms of grace threw away a note that landed right.
-      const grace = graceMs(bpm)
-      const end = Number.isFinite(repEnd) ? repEnd + grace : Number.POSITIVE_INFINITY
+      // The window is [repStart - cut, repEnd - cut): the same boundary the next rep
+      // starts from, so a note belongs to exactly one of them.
+      const cut = (60000 / bpm) * boundaryBeats(c.repBeats, c.lastBeat)
+      const end = Number.isFinite(repEnd) ? repEnd - cut : Number.POSITIVE_INFINITY
       const notes = playedRef.current
-        .filter((n) => n.onTime >= repStart - grace && n.onTime < end)
+        .filter((n) => n.onTime >= repStart - cut && n.onTime < end)
         .sort((a, b) => a.onTime - b.onTime)
 
       const tol = toleranceFor(c.exercise.level, c.strictness)
@@ -258,7 +298,7 @@ export function Shred({ spelling }: Props) {
       setStats(recordRep(c.exercise.id, c.rootPc, Math.round(bpm), g.passed, g.perGroupDevMs))
 
       // In accel the tempo is dictated by the curve, not by the result.
-      if (c.mode === 'ladder' || c.mode === 'burst') {
+      if ((c.mode === 'ladder' || c.mode === 'burst') && !c.tempoLocked) {
         const next = nextRamp(rampRef.current, g.passed, rampConfigRef.current)
         rampRef.current = next.state
         setRamp(next.state)
@@ -565,6 +605,7 @@ export function Shred({ spelling }: Props) {
   const targets = rampTargets(ramp, rampConfig)
   // The last clean rep needed: this is the rep worth warning about before, not after.
   const aboutToClimb =
+    !tempoLocked &&
     (mode === 'ladder' || mode === 'burst') &&
     (phase === 'playing' || phase === 'countin') &&
     ramp.cleanStreak === rampConfig.repsToAdvance - 1
@@ -641,7 +682,7 @@ export function Shred({ spelling }: Props) {
           </select>
         </label>
 
-        <label title="How many clean reps in a row raise the tempo. One bad rep resets the count.">
+        <label title="How many clean reps in a row raise the tempo. One bad rep resets the count. Set it to never to drill one tempo for as long as you like — the reps are still graded.">
           Raise after
           <select
             value={range.advanceReps}
@@ -652,6 +693,7 @@ export function Shred({ spelling }: Props) {
             <option value={1}>1 clean</option>
             <option value={2}>2 clean</option>
             <option value={3}>3 clean</option>
+            <option value={LOCKED}>never</option>
           </select>
         </label>
 
@@ -807,7 +849,13 @@ export function Shred({ spelling }: Props) {
         {' '}
         {STRICTNESS_HELP[strictness]}
       </p>
-      {mode !== 'accel' && mode !== 'free' && (
+      {mode !== 'accel' && mode !== 'free' && tempoLocked && (
+        <p className="ramp-progress locked">
+          tempo locked at <strong>{ramp.bpm}</strong> BPM — reps are still graded, the
+          ladder just does not move
+        </p>
+      )}
+      {mode !== 'accel' && mode !== 'free' && !tempoLocked && (
         <p className={`ramp-progress ${ramp.failStreak > 0 ? 'down' : 'up'}`}>
           {ramp.failStreak > 0 ? (
             <>

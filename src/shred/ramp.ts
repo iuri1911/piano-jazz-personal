@@ -35,6 +35,13 @@ export type RampConfig = {
  */
 export const ABS_MIN_BPM = 10
 
+/**
+ * `repsToAdvance` value that means "do not move the tempo at all". Grading carries
+ * on; only the ladder stops. It lives here so the setting and the ladder agree on
+ * one sentinel instead of each carrying its own flag.
+ */
+export const LOCKED = 0
+
 export const DEFAULT_RAMP: RampConfig = {
   minBpm: 40,
   maxBpm: 240,

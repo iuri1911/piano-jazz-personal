@@ -1,6 +1,6 @@
 import { describe, expect, it, beforeEach } from 'vitest'
 import { DEFAULT_SETTINGS, loadSettings, saveSettings } from './shredStats'
-import { ABS_MIN_BPM, DEFAULT_RAMP } from './ramp'
+import { ABS_MIN_BPM, DEFAULT_RAMP, LOCKED } from './ramp'
 
 // jsdom is not enabled; a fake localStorage is enough to test the normalization,
 // which is where the missing-field bug shows up.
@@ -62,6 +62,15 @@ describe('normalizing the preferences', () => {
   it('settings saved before the floor existed keep the old floor', () => {
     store.set('pjt:shred:settings', JSON.stringify({ low: 36, high: 84 }))
     expect(loadSettings().minBpm).toBe(DEFAULT_RAMP.minBpm)
+  })
+
+  it('never (LOCKED) is a valid choice for raise-after, not a clamped-away zero', () => {
+    // Drilling one tempo indefinitely is a normal way to practise, so 0 has to
+    // survive normalize instead of being pulled up to 1.
+    expect(saveSettings({ ...DEFAULT_SETTINGS, advanceReps: LOCKED }).advanceReps).toBe(LOCKED)
+    expect(loadSettings().advanceReps).toBe(LOCKED)
+    expect(saveSettings({ ...DEFAULT_SETTINGS, advanceReps: -5 }).advanceReps).toBe(LOCKED)
+    expect(saveSettings({ ...DEFAULT_SETTINGS, advanceReps: 9 }).advanceReps).toBe(3)
   })
 
   it('corrupt storage does not take it down', () => {

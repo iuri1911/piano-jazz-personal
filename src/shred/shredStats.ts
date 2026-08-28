@@ -1,4 +1,4 @@
-import { ABS_MIN_BPM, DEFAULT_RAMP } from './ramp'
+import { ABS_MIN_BPM, DEFAULT_RAMP, LOCKED } from './ramp'
 
 const KEY = 'pjt:shred'
 
@@ -141,7 +141,10 @@ export type ShredSettings = {
   minBpm: number
   /** Click volume, 0 to 1. Metronome only — the "Listen" piano does not go through here. */
   clickVolume: number
-  /** How many clean reps in a row raise the tempo. 1 raises it as soon as you nail one. */
+  /**
+   * How many clean reps in a row raise the tempo. 1 raises it as soon as you nail
+   * one; LOCKED (0) freezes the tempo entirely and keeps grading.
+   */
   advanceReps: number
   // What was selected. Stored raw: the component is what validates against the
   // tables, so renaming an exercise here does not break anyone's storage.
@@ -208,7 +211,7 @@ function normalize(raw: Partial<ShredSettings>): ShredSettings {
       ? Math.max(0, Math.min(1, raw.clickVolume as number))
       : DEFAULT_SETTINGS.clickVolume,
     advanceReps: Number.isFinite(raw.advanceReps)
-      ? Math.max(1, Math.min(3, Math.round(raw.advanceReps as number)))
+      ? Math.max(LOCKED, Math.min(3, Math.round(raw.advanceReps as number)))
       : DEFAULT_SETTINGS.advanceReps,
     exerciseId: typeof raw.exerciseId === 'string' ? raw.exerciseId : '',
     rootPc: Number.isFinite(raw.rootPc)

@@ -620,6 +620,15 @@ button.primary {
   color: var(--bad);
 }
 
+/* Locked: the line still reports, it just has no countdown to show. */
+.ramp-progress.locked {
+  color: var(--dim);
+}
+
+.ramp-progress.locked strong {
+  color: var(--fg);
+}
+
 .dots {
   display: inline-flex;
   gap: 4px;

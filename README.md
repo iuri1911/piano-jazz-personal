@@ -34,6 +34,7 @@ On being permissive at note entry, which is where it is easy to misjudge the pla
 - After two consecutive unmatched onsets, the alignment **widens its search** and finds the line again. Without it, slipping and skipping more than 3 notes froze the cursor and turned all the rest of the rep into "extra".
 - The grace at the edges of a rep is a **fraction of a beat, not fixed milliseconds** — at 80 BPM a beat is 750ms, and a fixed 120ms grace discarded notes that landed in the right place.
 - A rep you did not play (adjusting the keyboard, reading the screen) does not count as a failure and **does not lower the BPM**.
+- The boundary between reps sits **halfway between the last onset of one and the first of the next**, at most a quarter beat out. The exercise loops, so the next rep's first note lands exactly on the end of this one; a trailing grace swallowed it — counted extra here and, since the window is also what gets discarded, missing over there. Two guaranteed errors a rep, which is more than the entire budget of a short exercise: the broken triad has 12 notes and a budget of 1, so playing it perfectly failed every rep after the first.
 - An exercise that climbs comes back down. Before, the ones that only climbed teleported two octaves at the end of the rep — impossible to play in a loop. The descent is the **mirror around the top**, not the figure played backwards: for a symmetric shape it comes to the same thing, but for an asymmetric figure (Hanon) the mirror is the real descending form.
 - If the notes that were missing and the ones that were extra are the same figure shifted, it tells you: *"you played the whole thing 1 octave down"*. It is the most common mistake and the most confusing one when it shows up as raw error.
 
@@ -58,6 +59,8 @@ Just below sits the count toward the next step — `●○ 1 more clean rep and 
 Everything you select — exercise, key, hands, order, mode, strictness, tempo, tempo floor, volume, keyboard range — is saved and comes back identical on the next load.
 
 **Raise after** sets how many *consecutive* clean reps promote you: 1, 2 or 3. At 2 (the default) one bad rep resets the count, and on a short exercise — the seventh arpeggio lasts 3 seconds — it is easy to never string two together and for the tempo to seem stuck. If that is the case, use **1 clean**: nail it, climb.
+
+Set it to **never** to drill one tempo for as long as you like. The reps are still graded and the records still count — only the ladder stops. Both directions freeze, not just the climb: a tempo that drops on two bad reps is not one tempo.
 
 The **click** slider controls only the metronome volume; the *Listen* piano does not go through it, so you can silence the click and keep hearing the exercise.
 
